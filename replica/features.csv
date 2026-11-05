@@ -1,0 +1,35 @@
+feature,area,priority,original,clone,notes
+Chat with AI model,core,must,yes,yes,FreeLLMAPI playground already has this
+Streaming responses,core,must,yes,yes,FreeLLMAPI already streams via SSE
+Model selection,core,must,yes,yes,FreeLLMAPI has model combobox with 635 models
+Conversation history,core,must,yes,yes,FreeLLMAPI stores in localStorage
+Conversation sidebar,core,must,yes,yes,FreeLLMAPI has ConversationSidebar
+New conversation,core,must,yes,yes,FreeLLMAPI has new-chat button
+Delete conversation,core,must,yes,yes,FreeLLMAPI supports delete
+Rename conversation,core,must,yes,yes,FreeLLMAPI supports rename
+Markdown rendering,core,must,yes,yes,FreeLLMAPI has Markdown component
+Code blocks with syntax highlighting,core,must,yes,yes,FreeLLMAPI has code-block component
+Copy code button,core,must,yes,yes,FreeLLMAPI has CopyButton
+Artifact panel (code/html/doc),artifacts,must,yes,yes,FreeLLMAPI has ArtifactPanel
+File upload (images),files,must,yes,yes,FreeLLMAPI supports image attachments
+File upload (documents),files,must,yes,yes,FreeLLMAPI supports text attachments
+Web search with citations,search,must,yes,yes,FreeLLMAPI has SearchSources + multiple engines
+Dark/light theme,ui,must,yes,yes,FreeLLMAPI has theme toggle
+Responsive mobile layout,ui,must,yes,yes,FreeLLMAPI client is responsive
+Auto-fallback between providers,routing,must,yes,yes,FreeLLMAPI's core feature — 34 providers
+Auto-generate conversation title,ux,should,yes,no,Need to add — use LLM to generate title
+Keyboard shortcuts (Cmd+K etc),ux,should,yes,no,Need to add
+Claude-like minimal UI skin,ui,should,yes,no,Need to reskin FreeLLMAPI playground
+Smart model grouping (hide provider complexity),ux,should,yes,no,Need to show friendly names not platform:model
+Export conversation,data,should,yes,no,Need to add export as markdown/JSON
+Regenerate response,core,should,yes,no,Need to add retry/regenerate button
+Stop generation,core,should,yes,yes,FreeLLMAPI supports abort
+System prompt customization,core,should,yes,no,Need to add in settings
+Landing page with branding,ui,could,yes,no,Need custom landing page
+Cross-device sync,data,could,yes,no,Would need server-side storage + accounts
+Projects / folders,organization,could,yes,no,Later version
+Memory across conversations,personalization,could,yes,no,Later — local storage based
+MCP server integration,extensibility,could,yes,no,Later version
+Computer use / agent mode,agent,could,yes,no,Later version
+Voice input/output,accessibility,could,yes,no,Later — FreeLLMAPI has audio endpoint
+Team collaboration,enterprise,could,yes,no,Skip — not needed for free tool
