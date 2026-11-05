@@ -47,6 +47,7 @@ import LogsPage from '@/pages/LogsPage'
 import PremiumPage from '@/pages/PremiumPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import AgentsPage from '@/pages/AgentsPage'
+import LujaxChatPage from '@/pages/LujaxChatPage'
 
 // Every failed mutation surfaces as an error toast, so no action fails
 // silently. A page that already shows the failure inline can opt out with
@@ -70,6 +71,7 @@ const queryClient = new QueryClient({
 })
 
 const navItems = [
+  { to: '/chat', labelKey: 'Lujax Chat' },
   { to: '/models', labelKey: 'nav.models' },
   { to: '/playground', labelKey: 'nav.playground' },
   { to: '/keys', labelKey: 'nav.keys' },
@@ -419,7 +421,7 @@ function PageBoundary({ children }: { children: ReactNode }) {
 // padded column. Only the Playground so far: its three columns run edge to edge
 // and the transcript scrolls inside its own pane, so the page must be exactly
 // as tall as what is left under the navbar — not a centred card with margins.
-const FULL_BLEED_ROUTES = new Set(['/playground'])
+const FULL_BLEED_ROUTES = new Set(['/playground', '/chat'])
 
 // The shell's content container. A full-bleed route drops the max-width and the
 // padding and becomes a flex child that fills the rest of the screen; every
@@ -477,7 +479,8 @@ function App() {
                 <PageContainer>
                   <PageBoundary>
                     <Routes>
-                      <Route path="/" element={<Navigate to="/models/chat" replace />} />
+                      <Route path="/" element={<Navigate to="/chat" replace />} />
+                      <Route path="/chat" element={<LujaxChatPage />} />
                       <Route path="/models" element={<Navigate to="/models/chat" replace />} />
                       <Route path="/models/chat" element={<FallbackPage />} />
                       <Route path="/models/chat/:id" element={<ModelDetailPage />} />
