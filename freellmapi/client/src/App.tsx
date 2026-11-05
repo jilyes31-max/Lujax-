@@ -48,6 +48,8 @@ import PremiumPage from '@/pages/PremiumPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import AgentsPage from '@/pages/AgentsPage'
 import LujaxChatPage from '@/pages/LujaxChatPage'
+import LujaxAuthPage from '@/pages/LujaxAuthPage'
+import { SupabaseAuthProvider, useAuth } from '@/contexts/AuthContext'
 
 // Every failed mutation surfaces as an error toast, so no action fails
 // silently. A page that already shows the failure inline can opt out with
@@ -411,6 +413,17 @@ function Navbar() {
   )
 }
 
+function LujaxAuthGate({ children }: { children: ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return (
+    <div className="flex h-dvh items-center justify-center bg-background">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+    </div>
+  )
+  if (!user) return <LujaxAuthPage />
+  return <>{children}</>
+}
+
 // Keyed by pathname so navigating away from a crashed page resets the boundary.
 function PageBoundary({ children }: { children: ReactNode }) {
   const location = useLocation()
@@ -465,6 +478,7 @@ function AppShell({ children }: { children: ReactNode }) {
 
 function App() {
   return (
+    <SupabaseAuthProvider>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <I18nProvider>
@@ -480,7 +494,7 @@ function App() {
                   <PageBoundary>
                     <Routes>
                       <Route path="/" element={<Navigate to="/chat" replace />} />
-                      <Route path="/chat" element={<LujaxChatPage />} />
+                      <Route path="/chat" element={<LujaxAuthGate><LujaxChatPage /></LujaxAuthGate>} />
                       <Route path="/models" element={<Navigate to="/models/chat" replace />} />
                       <Route path="/models/chat" element={<FallbackPage />} />
                       <Route path="/models/chat/:id" element={<ModelDetailPage />} />
@@ -519,6 +533,7 @@ function App() {
         </I18nProvider>
       </ThemeProvider>
     </QueryClientProvider>
+    </SupabaseAuthProvider>
   )
 }
 

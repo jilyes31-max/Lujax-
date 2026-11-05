@@ -1,27 +1,42 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Menu } from 'lucide-react'
+import { Menu, LogOut } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { buildModelOptions } from '@/lib/model-groups'
 import { readChatStream } from '@/lib/playground-stream'
 import { generateTitle } from '@/lib/lujax-title'
+import { useAuth } from '@/contexts/AuthContext'
+import { signOut } from '@/lib/supabase-auth'
 import {
-  listConversations,
-  getConversation,
-  createConversation,
-  updateConversation,
-  deleteConversation,
-  toStoredMessages,
-  readActiveConversationId,
-  writeActiveConversationId,
-  type ChatMessage,
-  type ConversationSummary,
-} from '@/lib/playground-conversations'
+  listConversations as sbListConvos,
+  getConversation as sbGetConvo,
+  createConversation as sbCreateConvo,
+  updateConversation as sbUpdateConvo,
+  deleteConversation as sbDeleteConvo,
+  addMessages,
+  type SBConversation,
+} from '@/lib/supabase-conversations'
 import { ChatSidebar } from '@/components/lujax/ChatSidebar'
 import { ChatComposer } from '@/components/lujax/ChatComposer'
 import { MessageBubble } from '@/components/lujax/MessageBubble'
 import { ModelPicker } from '@/components/lujax/ModelPicker'
 import { WelcomeScreen } from '@/components/lujax/WelcomeScreen'
+
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  reasoning?: string
+  images?: string[]
+  meta?: Record<string, unknown>
+  isError?: boolean
+  streaming?: boolean
+}
+
+export interface ConversationSummary {
+  id: string
+  title: string
+  updatedAt: number
+}
 
 interface FallbackEntry {
   modelDbId: number
@@ -35,24 +50,43 @@ interface FallbackEntry {
   intelligenceRank?: number
 }
 
+function toSummary(c: SBConversation): ConversationSummary {
+  return { id: c.id, title: c.title, updatedAt: new Date(c.updated_at).getTime() }
+}
+
 export default function LujaxChatPage() {
+  const { user } = useAuth()
   const queryClient = useQueryClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
-  const [activeConvoId, setActiveConvoId] = useState<number | null>(readActiveConversationId)
+  const [activeConvoId, setActiveConvoId] = useState<string | null>(() => {
+    try { return localStorage.getItem('lujax_active_convo') } catch { return null }
+  })
   const [selectedModel, setSelectedModel] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024)
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  // Fetch conversations list
+  const writeActiveId = (id: string | null) => {
+    setActiveConvoId(id)
+    try {
+      if (id) localStorage.setItem('lujax_active_convo', id)
+      else localStorage.removeItem('lujax_active_convo')
+    } catch {}
+  }
+
+  // Fetch conversations from Supabase
   const { data: conversations = [] } = useQuery<ConversationSummary[]>({
     queryKey: ['lujax-conversations'],
-    queryFn: listConversations,
+    queryFn: async () => {
+      const list = await sbListConvos()
+      return list.map(toSummary)
+    },
+    enabled: !!user,
   })
 
-  // Fetch models
+  // Fetch models from FreeLLMAPI backend
   const { data: fallbackEntries = [] } = useQuery<FallbackEntry[]>({
     queryKey: ['lujax-fallback'],
     queryFn: () => apiFetch<FallbackEntry[]>('/api/fallback'),
@@ -84,7 +118,6 @@ export default function LujaxChatPage() {
     unifyOn,
   )
 
-  // Set default model
   useEffect(() => {
     if (!selectedModel && modelOptions.length > 0) {
       const sorted = [...modelOptions].sort((a, b) => a.sizeTier - b.sizeTier || a.intelligenceRank - b.intelligenceRank)
@@ -92,27 +125,29 @@ export default function LujaxChatPage() {
     }
   }, [modelOptions, selectedModel])
 
-  // Load active conversation
+  // Load active conversation from Supabase
   useEffect(() => {
-    if (activeConvoId) {
-      getConversation(activeConvoId)
+    if (activeConvoId && user) {
+      sbGetConvo(activeConvoId)
         .then(c => {
-          setMessages(c.messages)
+          setMessages(c.messages.map(m => ({
+            role: m.role as ChatMessage['role'],
+            content: m.content,
+            reasoning: m.reasoning || undefined,
+            images: m.images || undefined,
+            meta: m.meta as Record<string, unknown>,
+            isError: m.is_error,
+          })))
           if (c.model) setSelectedModel(c.model)
         })
-        .catch(() => {
-          setActiveConvoId(null)
-          writeActiveConversationId(null)
-        })
+        .catch(() => writeActiveId(null))
     }
-  }, [activeConvoId])
+  }, [activeConvoId, user])
 
-  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
@@ -126,24 +161,42 @@ export default function LujaxChatPage() {
 
   const handleNewChat = useCallback(() => {
     setMessages([])
-    setActiveConvoId(null)
-    writeActiveConversationId(null)
+    writeActiveId(null)
     setSidebarOpen(false)
   }, [])
 
   const saveConversation = useCallback(async (msgs: ChatMessage[], model: string) => {
-    const stored = toStoredMessages(msgs)
+    const nonStreaming = msgs.filter(m => !m.streaming)
+    if (nonStreaming.length === 0) return
+
     if (activeConvoId) {
-      await updateConversation(activeConvoId, { messages: stored, model })
-    } else if (stored.length > 0) {
-      const title = stored[0]?.content?.slice(0, 40) || 'New chat'
-      const convo = await createConversation({ title, messages: stored, model })
-      setActiveConvoId(convo.id)
-      writeActiveConversationId(convo.id)
-      // Auto-generate title in background
-      if (stored[0]?.role === 'user') {
-        generateTitle(stored[0].content).then(async t => {
-          await updateConversation(convo.id, { title: t })
+      // Add only the last two messages (user + assistant)
+      const newMsgs = nonStreaming.slice(-2)
+      await addMessages(activeConvoId, newMsgs.map(m => ({
+        role: m.role,
+        content: m.content,
+        reasoning: m.reasoning,
+        images: m.images,
+        meta: m.meta,
+        is_error: m.isError,
+      })))
+      await sbUpdateConvo(activeConvoId, { model })
+    } else {
+      const firstMsg = nonStreaming[0]?.content?.slice(0, 40) || 'New chat'
+      const convo = await sbCreateConvo(firstMsg, model)
+      writeActiveId(convo.id)
+      await addMessages(convo.id, nonStreaming.map(m => ({
+        role: m.role,
+        content: m.content,
+        reasoning: m.reasoning,
+        images: m.images,
+        meta: m.meta,
+        is_error: m.isError,
+      })))
+      // Auto-generate title
+      if (nonStreaming[0]?.role === 'user') {
+        generateTitle(nonStreaming[0].content).then(async t => {
+          await sbUpdateConvo(convo.id, { title: t })
           queryClient.invalidateQueries({ queryKey: ['lujax-conversations'] })
         }).catch(() => {})
       }
@@ -179,7 +232,6 @@ export default function LujaxChatPage() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (token) headers['Authorization'] = `Bearer ${token}`
 
-      // Build messages payload
       const apiMessages = newMessages.slice(0, -1).map(m => {
         if (m.role === 'user' && m.images?.length) {
           return {
@@ -226,7 +278,6 @@ export default function LujaxChatPage() {
 
       if (!res.body) throw new Error('No response body')
 
-      // Extract routing info from headers
       const routedVia = res.headers.get('x-routed-via') || ''
       const [routedPlatform, routedModel] = routedVia.split(':')
 
@@ -323,22 +374,19 @@ export default function LujaxChatPage() {
     }
   }, [messages, handleSend])
 
-  const handleSelectConvo = (id: number) => {
-    setActiveConvoId(id)
-    writeActiveConversationId(id)
+  const handleSelectConvo = (id: string) => {
+    writeActiveId(id)
     setSidebarOpen(false)
   }
 
-  const handleDeleteConvo = async (id: number) => {
-    await deleteConversation(id)
-    if (activeConvoId === id) {
-      handleNewChat()
-    }
+  const handleDeleteConvo = async (id: string) => {
+    await sbDeleteConvo(id)
+    if (activeConvoId === id) handleNewChat()
     queryClient.invalidateQueries({ queryKey: ['lujax-conversations'] })
   }
 
-  const handleRenameConvo = async (id: number, title: string) => {
-    await updateConversation(id, { title })
+  const handleRenameConvo = async (id: string, title: string) => {
+    await sbUpdateConvo(id, { title })
     queryClient.invalidateQueries({ queryKey: ['lujax-conversations'] })
   }
 
@@ -348,7 +396,6 @@ export default function LujaxChatPage() {
 
   return (
     <div className="flex h-full">
-      {/* Sidebar */}
       <ChatSidebar
         conversations={conversations}
         activeId={activeConvoId}
@@ -358,11 +405,11 @@ export default function LujaxChatPage() {
         onRename={handleRenameConvo}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        userEmail={user?.email}
+        onSignOut={signOut}
       />
 
-      {/* Main chat area */}
       <div className="flex flex-1 flex-col min-w-0">
-        {/* Top bar */}
         <div className="flex items-center justify-between border-b border-border px-4 py-2">
           <div className="flex items-center gap-2">
             <button
@@ -377,9 +424,14 @@ export default function LujaxChatPage() {
               onSelect={setSelectedModel}
             />
           </div>
+          <button
+            onClick={signOut}
+            className="flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
 
-        {/* Messages */}
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
             <WelcomeScreen onSuggestionClick={handleSuggestion} />
@@ -398,7 +450,6 @@ export default function LujaxChatPage() {
           )}
         </div>
 
-        {/* Composer */}
         <ChatComposer
           onSend={handleSend}
           onStop={handleStop}

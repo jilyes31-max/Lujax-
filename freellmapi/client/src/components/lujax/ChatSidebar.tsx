@@ -1,16 +1,23 @@
 import { useState } from 'react'
-import { Plus, Search, Trash2, Edit3, Check, X, Sparkles, MessageSquare } from 'lucide-react'
-import type { ConversationSummary } from '@/lib/playground-conversations'
+import { Plus, Search, Trash2, Edit3, Check, X, Sparkles, MessageSquare, LogOut } from 'lucide-react'
+
+interface ConversationSummary {
+  id: string
+  title: string
+  updatedAt: number
+}
 
 interface ChatSidebarProps {
   conversations: ConversationSummary[]
-  activeId: number | null
-  onSelect: (id: number) => void
+  activeId: string | null
+  onSelect: (id: string) => void
   onNew: () => void
-  onDelete: (id: number) => void
-  onRename: (id: number, title: string) => void
+  onDelete: (id: string) => void
+  onRename: (id: string, title: string) => void
   isOpen: boolean
   onClose?: () => void
+  userEmail?: string
+  onSignOut?: () => void
 }
 
 function groupByDate(conversations: ConversationSummary[]): Record<string, ConversationSummary[]> {
@@ -33,9 +40,9 @@ function groupByDate(conversations: ConversationSummary[]): Record<string, Conve
   return groups
 }
 
-export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete, onRename, isOpen, onClose }: ChatSidebarProps) {
+export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete, onRename, isOpen, onClose, userEmail, onSignOut }: ChatSidebarProps) {
   const [search, setSearch] = useState('')
-  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
 
   const filtered = search
@@ -59,7 +66,6 @@ export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && onClose && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />
       )}
@@ -69,7 +75,6 @@ export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border p-3">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-orange-400 to-amber-600">
@@ -86,7 +91,6 @@ export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete
           </button>
         </div>
 
-        {/* Search */}
         <div className="p-2">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -99,7 +103,6 @@ export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete
           </div>
         </div>
 
-        {/* Conversation list */}
         <div className="flex-1 overflow-y-auto px-2 pb-2">
           {filtered.length === 0 ? (
             <div className="mt-8 text-center text-xs text-muted-foreground">
@@ -167,6 +170,26 @@ export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete
             })
           )}
         </div>
+
+        {userEmail && (
+          <div className="border-t border-border p-3">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium text-foreground">{userEmail}</p>
+                <p className="text-[10px] text-muted-foreground">Free plan</p>
+              </div>
+              {onSignOut && (
+                <button
+                  onClick={onSignOut}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  title="Sign out"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </aside>
     </>
   )
