@@ -148,7 +148,7 @@ export function createApp(config?: Config) {
         scriptSrc: ["'self'", INLINE_BOOTSTRAP_SHA],
         styleSrc: ["'self'", "'unsafe-inline'"],
         imgSrc: ["'self'", "data:"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", ...(process.env.SUPABASE_URL ? [process.env.SUPABASE_URL] : [])],
         fontSrc: ["'self'"],
         formAction: ["'self'"],
         baseUri: ["'self'"],
