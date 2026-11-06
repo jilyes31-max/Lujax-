@@ -54,23 +54,31 @@ async function main() {
   // Render's ephemeral filesystem wipes the SQLite DB on each deploy, so
   // sentinel rows for keyless providers must be re-created every startup.
   if (process.env.LUJAX_MODE === 'true') {
-    const db = getDb();
-    const KEYLESS_PLATFORMS = ['kilo', 'ovh', 'aihorde'] as const;
-    for (const platform of KEYLESS_PLATFORMS) {
-      const provider = resolveProvider(platform as any);
-      if (!provider?.keyless) continue;
-      const exists = db.prepare('SELECT 1 FROM api_keys WHERE platform = ?').get(platform);
-      if (!exists) {
-        const { encrypted, iv, authTag } = encrypt('no-key');
-        db.prepare(
-          "INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled) VALUES (?, ?, ?, ?, ?, 'unknown', 1)"
-        ).run(platform, 'auto', encrypted, iv, authTag);
-        console.log(`[lujax] seeded keyless provider: ${platform}`);
+    try {
+      const db = getDb();
+      const KEYLESS_PLATFORMS = ['kilo', 'ovh', 'aihorde'] as const;
+      for (const platform of KEYLESS_PLATFORMS) {
+        const provider = resolveProvider(platform as any);
+        if (!provider?.keyless) {
+          console.log(`[lujax] ${platform}: not keyless or not found, skipping`);
+          continue;
+        }
+        const exists = db.prepare('SELECT 1 FROM api_keys WHERE platform = ?').get(platform);
+        if (!exists) {
+          const { encrypted, iv, authTag } = encrypt('no-key');
+          db.prepare(
+            "INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled) VALUES (?, ?, ?, ?, ?, 'unknown', 1)"
+          ).run(platform, 'auto', encrypted, iv, authTag);
+          console.log(`[lujax] seeded keyless provider: ${platform}`);
+        }
       }
-    }
-    if (userCount() === 0) {
-      createUser('admin@lujax.app', 'LujaxAdmin2026!');
-      console.log('[lujax] created default admin user');
+      if (userCount() === 0) {
+        createUser('admin@lujax.app', 'LujaxAdmin2026!');
+        console.log('[lujax] created default admin user');
+      }
+      console.log('[lujax] startup seeding complete (v2)');
+    } catch (err: any) {
+      console.error(`[lujax] seeding failed: ${err?.message ?? err}`);
     }
   }
 
