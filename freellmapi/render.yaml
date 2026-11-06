@@ -11,3 +11,7 @@ services:
         value: "https://bpazcpjuwpajefkjgfab.supabase.co"
       - key: SUPABASE_ANON_KEY
         value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwYXpjcGp1d3BhamVma2pnZmFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5MDk3ODIsImV4cCI6MjEwOTQ4NTc4Mn0.DvfGVNXgvmYCG5IiQJmZwcSjpXyLYCD5wlflqGSzCl8"
+      - key: ENCRYPTION_KEY
+        value: "0515662583b565f4471150dc385724289c54b72ccc09808a3fc8b01b714f10e5"
+      - key: FREEAPI_CONFIG_JSON
+        value: '{"admin":{"email":"admin@lujax.app","password":"LujaxAdmin2026!"},"keys":[{"platform":"kilo"},{"platform":"ovh"},{"platform":"aihorde"}]}'
