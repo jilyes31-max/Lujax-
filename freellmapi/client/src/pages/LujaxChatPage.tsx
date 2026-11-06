@@ -5,7 +5,7 @@ import { buildModelOptions } from '@/lib/model-groups'
 import { readChatStream } from '@/lib/playground-stream'
 import { generateTitle } from '@/lib/lujax-title'
 import { useAuth } from '@/contexts/AuthContext'
-import { signOut } from '@/lib/supabase-auth'
+import { signOut, getSession } from '@/lib/supabase-auth'
 import {
   listConversations as sbListConvos,
   getConversation as sbGetConvo,
@@ -87,19 +87,25 @@ export default function LujaxChatPage() {
 
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 
-  // Fetch the inference API key from the loopback-only config endpoint.
-  // In production (LUJAX_MODE) the server skips inference auth, so the
-  // key is only needed during local development.
+  // Fetch the inference API key from the config endpoint.
+  // In dev mode the server checks loopback; in production (LUJAX_MODE)
+  // the server verifies the Supabase JWT instead.
   const { data: apiKey = '' } = useQuery<string>({
-    queryKey: ['lujax-config'],
+    queryKey: ['lujax-config', user?.id],
     queryFn: async () => {
       try {
-        const res = await fetch(`${BASE}/api/auth/lujax-config`)
+        const headers: Record<string, string> = {}
+        const session = await getSession()
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`
+        }
+        const res = await fetch(`${BASE}/api/auth/lujax-config`, { headers })
         if (!res.ok) return ''
         const data = await res.json()
         return data.apiKey || ''
       } catch { return '' }
     },
+    enabled: !!user,
   })
 
   // Fetch models from /v1/models using the unified API key

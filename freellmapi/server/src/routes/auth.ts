@@ -411,13 +411,52 @@ authRouter.post('/reset-password', (req: Request, res: Response) => {
 });
 
 // Lujax config: returns the unified API key so the co-hosted chat frontend
-// can call /v1/chat/completions. Only available from loopback (same-origin
-// requests proxied by Vite dev server or served by this same process in prod).
-authRouter.get('/lujax-config', (req: Request, res: Response) => {
-  if (!isLoopbackRemote(req)) {
+// can call /v1/chat/completions.
+//
+// Two accepted paths:
+//  1. Loopback request (dev mode — Vite proxy or same-process serving)
+//  2. LUJAX_MODE + valid Supabase JWT (production — user must be signed in)
+//
+// Path 2 verifies the caller's Supabase access token against the Supabase
+// /auth/v1/user endpoint, which returns 401 for expired or forged tokens.
+// This is strictly MORE restrictive than loopback alone: it proves the
+// caller holds a live Supabase session.
+authRouter.get('/lujax-config', async (req: Request, res: Response) => {
+  if (isLoopbackRemote(req)) {
+    res.json({ apiKey: getUnifiedApiKey() });
+    return;
+  }
+
+  if (process.env.LUJAX_MODE !== 'true') {
     res.status(403).json({ error: { message: 'Only available from the local host', type: 'forbidden' } });
     return;
   }
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) {
+    res.status(500).json({ error: { message: 'Supabase not configured', type: 'server_error' } });
+    return;
+  }
+
+  const jwt = req.headers.authorization?.replace(/^Bearer\s+/i, '');
+  if (!jwt) {
+    res.status(401).json({ error: { message: 'Supabase authentication required', type: 'unauthorized' } });
+    return;
+  }
+
+  try {
+    const verify = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${jwt}`, apikey: supabaseAnonKey },
+    });
+    if (!verify.ok) {
+      res.status(401).json({ error: { message: 'Invalid or expired token', type: 'unauthorized' } });
+      return;
+    }
+  } catch {
+    res.status(502).json({ error: { message: 'Could not verify token', type: 'gateway_error' } });
+    return;
+  }
+
   res.json({ apiKey: getUnifiedApiKey() });
 });
-
