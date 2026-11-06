@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Search, Trash2, Edit3, Check, X, Sparkles, MessageSquare, LogOut } from 'lucide-react'
+import { Plus, Search, Trash2, Edit3, Check, X, Sparkles, MessageSquare, LogOut, Settings } from 'lucide-react'
 
 interface ConversationSummary {
   id: string
@@ -18,6 +18,7 @@ interface ChatSidebarProps {
   onClose?: () => void
   userEmail?: string
   onSignOut?: () => void
+  onSettings?: () => void
 }
 
 function groupByDate(conversations: ConversationSummary[]): Record<string, ConversationSummary[]> {
@@ -40,7 +41,7 @@ function groupByDate(conversations: ConversationSummary[]): Record<string, Conve
   return groups
 }
 
-export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete, onRename, isOpen, onClose, userEmail, onSignOut }: ChatSidebarProps) {
+export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete, onRename, isOpen, onClose, userEmail, onSignOut, onSettings }: ChatSidebarProps) {
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
@@ -178,15 +179,26 @@ export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete
                 <p className="truncate text-xs font-medium text-foreground">{userEmail}</p>
                 <p className="text-[10px] text-muted-foreground">Free plan</p>
               </div>
-              {onSignOut && (
-                <button
-                  onClick={onSignOut}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                  title="Sign out"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                </button>
-              )}
+              <div className="flex items-center gap-1">
+                {onSettings && (
+                  <button
+                    onClick={onSettings}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    title="Settings"
+                  >
+                    <Settings className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {onSignOut && (
+                  <button
+                    onClick={onSignOut}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    title="Sign out"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

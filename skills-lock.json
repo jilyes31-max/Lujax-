@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "find": {
+      "source": "bibryam/universal-skill-finder",
+      "sourceType": "github",
+      "skillPath": "skills/find/SKILL.md",
+      "computedHash": "ec23cfeaa29180d96c53abef45f2b1f566db815fd66731ae41b057a5406cb3ee"
+    },
+    "find-skill": {
+      "source": "oleksbard/claude-find-skill",
+      "sourceType": "github",
+      "skillPath": "find-skill/SKILL.md",
+      "computedHash": "0ef981eca23fc2b4fcc3f137e15bded0a0d7e55ccafb39fc5cb503ae8e4b2b0a"
+    }
+  }
+}

@@ -1,33 +1,83 @@
-import { Sparkles, Code, FileText, Search, ImageIcon, Lightbulb } from 'lucide-react'
+import { Sparkles, Code, FileText, Search, ImageIcon, Lightbulb, Terminal, Bug, Database, Wand2, Zap, Settings } from 'lucide-react'
+import type { ChatMode } from './ModeSelector'
 
-const suggestions = [
-  { icon: Code, text: 'Write a Python script to analyze CSV data', color: 'text-blue-500' },
-  { icon: FileText, text: 'Summarize this document for me', color: 'text-green-500' },
-  { icon: Search, text: 'Research the latest trends in AI', color: 'text-purple-500' },
-  { icon: ImageIcon, text: 'Describe what you see in this image', color: 'text-orange-500' },
-  { icon: Lightbulb, text: 'Help me brainstorm startup ideas', color: 'text-yellow-500' },
-  { icon: Code, text: 'Debug this React component for me', color: 'text-cyan-500' },
+const chatSuggestions = [
+  { icon: Code, text: 'Écris un script Python pour analyser des données CSV', color: 'text-blue-500' },
+  { icon: FileText, text: 'Résume ce document pour moi', color: 'text-green-500' },
+  { icon: Search, text: 'Recherche les dernières tendances en IA', color: 'text-purple-500' },
+  { icon: ImageIcon, text: 'Décris ce que tu vois dans cette image', color: 'text-orange-500' },
+  { icon: Lightbulb, text: 'Aide-moi à brainstormer des idées de startup', color: 'text-yellow-500' },
+  { icon: Code, text: 'Débogue ce composant React pour moi', color: 'text-cyan-500' },
 ]
+
+const codeSuggestions = [
+  { icon: Terminal, text: 'Crée une API REST avec Express et TypeScript', color: 'text-green-500' },
+  { icon: Bug, text: 'Trouve et corrige les bugs dans ce code', color: 'text-red-500' },
+  { icon: Database, text: 'Écris une requête SQL optimisée pour cette tâche', color: 'text-blue-500' },
+  { icon: Code, text: 'Convertis ce code JavaScript en TypeScript', color: 'text-cyan-500' },
+  { icon: Terminal, text: 'Crée un script Bash pour automatiser le déploiement', color: 'text-purple-500' },
+  { icon: Code, text: 'Implémente un algorithme de tri efficace', color: 'text-orange-500' },
+]
+
+const autoSuggestions = [
+  { icon: Wand2, text: 'Analyse mes conversations et suggère des améliorations', color: 'text-purple-500' },
+  { icon: Zap, text: 'Optimise mes paramètres pour de meilleures réponses', color: 'text-yellow-500' },
+  { icon: Settings, text: 'Crée un profil personnalisé basé sur mes préférences', color: 'text-blue-500' },
+  { icon: Wand2, text: 'Génère un résumé de mes habitudes d\'utilisation', color: 'text-green-500' },
+  { icon: Zap, text: 'Suggère le meilleur modèle IA pour mes besoins', color: 'text-orange-500' },
+  { icon: Lightbulb, text: 'Propose des améliorations pour l\'interface Lujax', color: 'text-cyan-500' },
+]
+
+const suggestionsByMode: Record<ChatMode, typeof chatSuggestions> = {
+  chat: chatSuggestions,
+  code: codeSuggestions,
+  auto: autoSuggestions,
+}
+
+const subtitleByMode: Record<ChatMode, string> = {
+  chat: 'IA gratuite, propulsée par 635 modèles',
+  code: 'Assistant de code alimenté par l\'IA',
+  auto: 'Auto-modification intelligente',
+}
+
+const descByMode: Record<ChatMode, string> = {
+  chat: 'Demande-moi n\'importe quoi. Je peux écrire du code, analyser des documents, comprendre des images, et bien plus.',
+  code: 'Mode Code activé. Je suis optimisé pour écrire, déboguer et expliquer du code. Collez du code ou décrivez ce que vous voulez construire.',
+  auto: 'Mode Auto-Modification activé. Je peux analyser vos habitudes, optimiser vos paramètres et suggérer des améliorations personnalisées.',
+}
 
 interface WelcomeScreenProps {
   onSuggestionClick: (text: string) => void
+  mode?: ChatMode
 }
 
-export function WelcomeScreen({ onSuggestionClick }: WelcomeScreenProps) {
+export function WelcomeScreen({ onSuggestionClick, mode = 'chat' }: WelcomeScreenProps) {
+  const suggestions = suggestionsByMode[mode]
+  const modeIcon = mode === 'code' ? Terminal : mode === 'auto' ? Wand2 : Sparkles
+  const ModeIcon = modeIcon
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-4 pb-32">
       <div className="mb-8 flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-amber-600 shadow-lg">
-          <Sparkles className="h-6 w-6 text-white" />
+        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg ${
+          mode === 'code'
+            ? 'bg-gradient-to-br from-emerald-400 to-green-600'
+            : mode === 'auto'
+              ? 'bg-gradient-to-br from-violet-400 to-purple-600'
+              : 'bg-gradient-to-br from-orange-400 to-amber-600'
+        }`}>
+          <ModeIcon className="h-6 w-6 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Lujax</h1>
-          <p className="text-sm text-muted-foreground">Free AI, powered by 635 models</p>
+          <h1 className="text-2xl font-semibold text-foreground">
+            {mode === 'code' ? 'Lujax Code' : mode === 'auto' ? 'Lujax Auto' : 'Lujax'}
+          </h1>
+          <p className="text-sm text-muted-foreground">{subtitleByMode[mode]}</p>
         </div>
       </div>
 
       <p className="mb-8 max-w-md text-center text-muted-foreground">
-        Ask me anything. I can write code, analyze documents, search the web, understand images, and much more.
+        {descByMode[mode]}
       </p>
 
       <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
