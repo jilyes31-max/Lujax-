@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Check, Copy, RefreshCw, Sparkles, User, ChevronDown, ChevronUp, Globe } from 'lucide-react'
 import { Markdown } from '@/components/markdown'
-import type { ChatMessage } from '@/lib/playground-conversations'
+import type { ChatMessage } from '@/pages/LujaxChatPage'
 import { friendlyModelName } from '@/lib/lujax-models'
 
 interface MessageBubbleProps {
@@ -39,9 +39,9 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
           <span className="text-sm font-medium text-foreground">
             {isUser ? 'You' : 'Lujax'}
           </span>
-          {!isUser && message.meta?.model && (
+          {!isUser && typeof message.meta?.model === 'string' && (
             <span className="text-xs text-muted-foreground">
-              {friendlyModelName(message.meta.model)}
+              {friendlyModelName(String(message.meta.model))}
             </span>
           )}
           {isStreaming && (
@@ -64,16 +64,16 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
             </button>
             {showReasoning && (
               <div className="mt-1 rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-                <Markdown content={message.reasoning} />
+                <Markdown>{message.reasoning}</Markdown>
               </div>
             )}
           </div>
         )}
 
         {/* Web search sources */}
-        {message.meta?.webSearch?.sources && message.meta.webSearch.sources.length > 0 && (
+        {(message.meta?.webSearch as { sources?: { url: string; title: string }[] })?.sources && (message.meta?.webSearch as { sources?: { url: string; title: string }[] }).sources!.length > 0 && (
           <div className="mb-2 ml-9 flex flex-wrap gap-2">
-            {message.meta.webSearch.sources.slice(0, 4).map((source, i) => (
+            {((message.meta?.webSearch as { sources: { url: string; title: string }[] }).sources).slice(0, 4).map((source: { url: string; title: string }, i: number) => (
               <a
                 key={i}
                 href={source.url}
@@ -94,7 +94,7 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
             <div className="whitespace-pre-wrap text-sm text-foreground">{message.content}</div>
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
-              <Markdown content={message.content} />
+              <Markdown>{message.content}</Markdown>
             </div>
           )}
 

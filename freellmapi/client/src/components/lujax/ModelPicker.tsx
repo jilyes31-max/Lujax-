@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
-import { MODEL_TIERS, pickTierModel, friendlyModelName, type ModelTier } from '@/lib/lujax-models'
+import { MODEL_TIERS, pickTierModel, friendlyModelName } from '@/lib/lujax-models'
 import type { ModelOption } from '@/lib/model-groups'
 
 interface ModelPickerProps {
