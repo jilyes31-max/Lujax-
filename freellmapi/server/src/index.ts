@@ -15,7 +15,7 @@ import { loadConfig } from './lib/config.js';
 import { applyDeclarativeConfigFromEnv } from './services/declarative-config.js';
 import { restoreDbBackupIfNeeded, startDbBackupPump } from './lib/db-backup.js';
 import { startBackupScheduler } from './services/backups.js';
-import { userCount } from './services/auth.js';
+import { userCount, createUser } from './services/auth.js';
 import { generateSetupCode } from './lib/setup-code.js';
 import { warnOnEnvDrift } from './lib/env-drift.js';
 import { warnOnRoutingOverrideDrift } from './services/model-weight-overrides.js';
@@ -23,6 +23,8 @@ import { installLogRedaction } from './lib/log-redaction.js';
 import { cleanupExpiredCooldowns } from './services/ratelimit.js';
 import { loadCacheFromDb } from './services/cache.js';
 import { installGracefulShutdown } from './lib/graceful-shutdown.js';
+import { encrypt } from './lib/crypto.js';
+import { resolveProvider } from './providers/index.js';
 
 // Before any other statement runs, so no provider key can reach stdout — users
 // paste server output into bug reports. Module scope, not inside main(), so it
@@ -47,6 +49,31 @@ async function main() {
   }
   initDb(config.dbPath ?? undefined);
   applyDeclarativeConfigFromEnv();
+
+  // Lujax mode: auto-seed keyless providers so free models work out of the box.
+  // Render's ephemeral filesystem wipes the SQLite DB on each deploy, so
+  // sentinel rows for keyless providers must be re-created every startup.
+  if (process.env.LUJAX_MODE === 'true') {
+    const db = getDb();
+    const KEYLESS_PLATFORMS = ['kilo', 'ovh', 'aihorde'] as const;
+    for (const platform of KEYLESS_PLATFORMS) {
+      const provider = resolveProvider(platform as any);
+      if (!provider?.keyless) continue;
+      const exists = db.prepare('SELECT 1 FROM api_keys WHERE platform = ?').get(platform);
+      if (!exists) {
+        const { encrypted, iv, authTag } = encrypt('no-key');
+        db.prepare(
+          "INSERT INTO api_keys (platform, label, encrypted_key, iv, auth_tag, status, enabled) VALUES (?, ?, ?, ?, ?, 'unknown', 1)"
+        ).run(platform, 'auto', encrypted, iv, authTag);
+        console.log(`[lujax] seeded keyless provider: ${platform}`);
+      }
+    }
+    if (userCount() === 0) {
+      createUser('admin@lujax.app', 'LujaxAdmin2026!');
+      console.log('[lujax] created default admin user');
+    }
+  }
+
   // After initDb: the unknown-model half of this check reads the catalog.
   warnOnRoutingOverrideDrift();
 
