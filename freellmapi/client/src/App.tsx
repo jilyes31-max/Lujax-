@@ -476,6 +476,65 @@ function AppShell({ children }: { children: ReactNode }) {
   )
 }
 
+function DashboardShell() {
+  return (
+    <AuthGate>
+      <AppShell>
+        <Navbar />
+        <PageContainer>
+          <PageBoundary>
+            <Routes>
+              <Route path="/models" element={<Navigate to="/models/chat" replace />} />
+              <Route path="/models/chat" element={<FallbackPage />} />
+              <Route path="/models/chat/:id" element={<ModelDetailPage />} />
+              <Route path="/models/fusion" element={<FusionPage />} />
+              <Route path="/models/embeddings" element={<EmbeddingsPage />} />
+              <Route path="/models/embeddings/:id" element={<EmbeddingDetailPage />} />
+              <Route path="/models/image" element={<ImagePage />} />
+              <Route path="/models/image/:id" element={<MediaDetailPage modality="image" />} />
+              <Route path="/models/video" element={<VideoPage />} />
+              <Route path="/models/video/:id" element={<MediaDetailPage modality="video" />} />
+              <Route path="/models/audio" element={<AudioPage />} />
+              <Route path="/models/audio/:id" element={<MediaDetailPage modality="audio" />} />
+              <Route path="/models/transcription/:id" element={<MediaDetailPage modality="transcription" />} />
+              <Route path="/models/search" element={<SearchPage />} />
+              <Route path="/models/decision" element={<DecisionPage />} />
+              <Route path="/playground" element={<PlaygroundPage />} />
+              <Route path="/keys" element={<KeysPage />} />
+              <Route path="/agents" element={<AgentsPage />} />
+              <Route path="/fallback" element={<Navigate to="/models/chat" replace />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/logs" element={<LogsPage />} />
+              <Route path="/premium" element={<PremiumPage />} />
+              <Route path="/test" element={<Navigate to="/playground" replace />} />
+              <Route path="/health" element={<Navigate to="/keys" replace />} />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </PageBoundary>
+        </PageContainer>
+        <Toaster />
+        <CommandPalette />
+        <UpdateReminder />
+        <NewBuildPrompt />
+      </AppShell>
+    </AuthGate>
+  )
+}
+
+function AppRoutes() {
+  const location = useLocation()
+  if (location.pathname === '/chat' || location.pathname === '/') {
+    return (
+      <LujaxAuthGate>
+        <div className="h-dvh overflow-hidden bg-background">
+          <LujaxChatPage />
+        </div>
+      </LujaxAuthGate>
+    )
+  }
+  return <DashboardShell />
+}
+
 function App() {
   return (
     <SupabaseAuthProvider>
@@ -483,52 +542,7 @@ function App() {
       <ThemeProvider>
         <I18nProvider>
           <BrowserRouter basename={import.meta.env.BASE_URL}>
-            <AuthGate>
-              {/* Column, so a full-bleed route can claim the height the navbar
-                  leaves without anyone having to know how tall the navbar is.
-                  Fixed-position children (toaster, palette, reminder) are out of
-                  flow, and a padded route stretches to nothing it can show. */}
-              <AppShell>
-                <Navbar />
-                <PageContainer>
-                  <PageBoundary>
-                    <Routes>
-                      <Route path="/" element={<Navigate to="/chat" replace />} />
-                      <Route path="/chat" element={<LujaxAuthGate><LujaxChatPage /></LujaxAuthGate>} />
-                      <Route path="/models" element={<Navigate to="/models/chat" replace />} />
-                      <Route path="/models/chat" element={<FallbackPage />} />
-                      <Route path="/models/chat/:id" element={<ModelDetailPage />} />
-                      <Route path="/models/fusion" element={<FusionPage />} />
-                      <Route path="/models/embeddings" element={<EmbeddingsPage />} />
-                      <Route path="/models/embeddings/:id" element={<EmbeddingDetailPage />} />
-                      <Route path="/models/image" element={<ImagePage />} />
-                      <Route path="/models/image/:id" element={<MediaDetailPage modality="image" />} />
-                      <Route path="/models/video" element={<VideoPage />} />
-                      <Route path="/models/video/:id" element={<MediaDetailPage modality="video" />} />
-                      <Route path="/models/audio" element={<AudioPage />} />
-                      <Route path="/models/audio/:id" element={<MediaDetailPage modality="audio" />} />
-                      <Route path="/models/transcription/:id" element={<MediaDetailPage modality="transcription" />} />
-                      <Route path="/models/search" element={<SearchPage />} />
-                      <Route path="/models/decision" element={<DecisionPage />} />
-                      <Route path="/playground" element={<PlaygroundPage />} />
-                      <Route path="/keys" element={<KeysPage />} />
-                      <Route path="/agents" element={<AgentsPage />} />
-                      <Route path="/fallback" element={<Navigate to="/models/chat" replace />} />
-                      <Route path="/analytics" element={<AnalyticsPage />} />
-                      <Route path="/logs" element={<LogsPage />} />
-                      <Route path="/premium" element={<PremiumPage />} />
-                      <Route path="/test" element={<Navigate to="/playground" replace />} />
-                      <Route path="/health" element={<Navigate to="/keys" replace />} />
-                      <Route path="*" element={<NotFoundPage />} />
-                    </Routes>
-                  </PageBoundary>
-                </PageContainer>
-                <Toaster />
-                <CommandPalette />
-                <UpdateReminder />
-                <NewBuildPrompt />
-              </AppShell>
-            </AuthGate>
+            <AppRoutes />
           </BrowserRouter>
         </I18nProvider>
       </ThemeProvider>
