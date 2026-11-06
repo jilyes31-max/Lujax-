@@ -1,5 +1,9 @@
-import { useState, useRef, useCallback, type KeyboardEvent, type DragEvent } from 'react'
-import { ArrowUp, Paperclip, Square, X } from 'lucide-react'
+import { useState, useRef, useCallback, useEffect, type KeyboardEvent, type DragEvent } from 'react'
+import { ArrowUp, Paperclip, Square, X, Mic, MicOff } from 'lucide-react'
+
+const SpeechRecognition = typeof window !== 'undefined'
+  ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  : null
 
 interface ChatComposerProps {
   onSend: (text: string, images: string[]) => void
@@ -13,8 +17,51 @@ export function ChatComposer({ onSend, onStop, isStreaming, disabled, placeholde
   const [text, setText] = useState('')
   const [images, setImages] = useState<string[]>([])
   const [dragOver, setDragOver] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const recognitionRef = useRef<any>(null)
+
+  useEffect(() => {
+    return () => { recognitionRef.current?.abort() }
+  }, [])
+
+  const toggleRecording = useCallback(() => {
+    if (!SpeechRecognition) return
+
+    if (isRecording) {
+      recognitionRef.current?.stop()
+      setIsRecording(false)
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognitionRef.current = recognition
+    const lang = (() => { try { const s = JSON.parse(localStorage.getItem('lujax_settings') || '{}'); return s.voiceLang || 'fr-FR' } catch { return 'fr-FR' } })()
+    recognition.lang = lang
+    recognition.continuous = true
+    recognition.interimResults = true
+
+    recognition.onresult = (event: any) => {
+      let transcript = ''
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript
+      }
+      setText(prev => {
+        const base = prev.replace(/\s*🎤.*$/, '')
+        if (event.results[event.results.length - 1].isFinal) {
+          return (base ? base + ' ' : '') + transcript
+        }
+        return (base ? base + ' ' : '') + transcript
+      })
+    }
+
+    recognition.onerror = () => setIsRecording(false)
+    recognition.onend = () => setIsRecording(false)
+
+    recognition.start()
+    setIsRecording(true)
+  }, [isRecording])
 
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current
@@ -115,10 +162,23 @@ export function ChatComposer({ onSend, onStop, isStreaming, disabled, placeholde
             <button
               onClick={() => fileRef.current?.click()}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              title="Attach image"
+              title="Joindre une image"
             >
               <Paperclip className="h-4 w-4" />
             </button>
+            {SpeechRecognition && (
+              <button
+                onClick={toggleRecording}
+                className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
+                  isRecording
+                    ? 'bg-red-500/10 text-red-500 animate-pulse'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                }`}
+                title={isRecording ? 'Arrêter' : 'Dictée vocale'}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
+            )}
             <input
               ref={fileRef}
               type="file"
@@ -136,7 +196,7 @@ export function ChatComposer({ onSend, onStop, isStreaming, disabled, placeholde
             <button
               onClick={onStop}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-opacity hover:opacity-80"
-              title="Stop generating"
+              title="Arrêter la génération"
             >
               <Square className="h-3.5 w-3.5" fill="currentColor" />
             </button>
@@ -145,7 +205,7 @@ export function ChatComposer({ onSend, onStop, isStreaming, disabled, placeholde
               onClick={handleSend}
               disabled={disabled || (!text.trim() && !images.length)}
               className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-opacity hover:opacity-80 disabled:opacity-30"
-              title="Send message"
+              title="Envoyer"
             >
               <ArrowUp className="h-4 w-4" strokeWidth={2.5} />
             </button>
@@ -154,7 +214,7 @@ export function ChatComposer({ onSend, onStop, isStreaming, disabled, placeholde
       </div>
 
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        Lujax is free and open source. Powered by 635 AI models from 34 providers.
+        Lujax est gratuit et open source. Propulsé par 635 modèles IA de 34 fournisseurs.
       </p>
     </div>
   )

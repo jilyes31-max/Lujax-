@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Check, Copy, RefreshCw, Sparkles, User, ChevronDown, ChevronUp, Globe } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { Check, Copy, RefreshCw, Sparkles, User, ChevronDown, ChevronUp, Globe, Volume2, VolumeX } from 'lucide-react'
 import { Markdown } from '@/components/markdown'
 import type { ChatMessage } from '@/pages/LujaxChatPage'
 import { friendlyModelName } from '@/lib/lujax-models'
@@ -13,6 +13,7 @@ interface MessageBubbleProps {
 export function MessageBubble({ message, isStreaming, onRetry }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [showReasoning, setShowReasoning] = useState(false)
+  const [isSpeaking, setIsSpeaking] = useState(false)
   const isUser = message.role === 'user'
   const isError = message.isError
 
@@ -21,6 +22,32 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
+
+  const handleSpeak = useCallback(() => {
+    if (!('speechSynthesis' in window)) return
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel()
+      setIsSpeaking(false)
+      return
+    }
+
+    const utterance = new SpeechSynthesisUtterance(message.content)
+    try {
+      const settings = JSON.parse(localStorage.getItem('lujax_settings') || '{}')
+      utterance.lang = settings.voiceLang || 'fr-FR'
+      utterance.rate = settings.voiceSpeed || 1
+    } catch {
+      utterance.lang = 'fr-FR'
+      utterance.rate = 1
+    }
+    utterance.onend = () => setIsSpeaking(false)
+    utterance.onerror = () => setIsSpeaking(false)
+
+    window.speechSynthesis.cancel()
+    window.speechSynthesis.speak(utterance)
+    setIsSpeaking(true)
+  }, [isSpeaking, message.content])
 
   return (
     <div className={`group py-5 ${isUser ? '' : ''}`}>
@@ -37,7 +64,7 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
             </div>
           )}
           <span className="text-sm font-medium text-foreground">
-            {isUser ? 'You' : 'Lujax'}
+            {isUser ? 'Vous' : 'Lujax'}
           </span>
           {!isUser && typeof message.meta?.model === 'string' && (
             <span className="text-xs text-muted-foreground">
@@ -47,7 +74,7 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
           {isStreaming && (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
-              thinking...
+              réflexion...
             </span>
           )}
         </div>
@@ -60,7 +87,7 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
               {showReasoning ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              Reasoning
+              Raisonnement
             </button>
             {showReasoning && (
               <div className="mt-1 rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
@@ -105,7 +132,7 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
                 <img
                   key={i}
                   src={img}
-                  alt={`Attachment ${i + 1}`}
+                  alt={`Pièce jointe ${i + 1}`}
                   className="h-32 w-auto rounded-lg border border-border object-cover"
                 />
               ))}
@@ -121,15 +148,28 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
               className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
             >
               {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? 'Copié' : 'Copier'}
             </button>
+            {'speechSynthesis' in window && (
+              <button
+                onClick={handleSpeak}
+                className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+                  isSpeaking
+                    ? 'bg-orange-500/10 text-orange-500'
+                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                }`}
+              >
+                {isSpeaking ? <VolumeX className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+                {isSpeaking ? 'Stop' : 'Écouter'}
+              </button>
+            )}
             {onRetry && (
               <button
                 onClick={onRetry}
                 className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
               >
                 <RefreshCw className="h-3 w-3" />
-                Retry
+                Réessayer
               </button>
             )}
           </div>

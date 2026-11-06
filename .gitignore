@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# ECC plugin (installed globally, not part of the project)
+ECC/
+
+# Build outputs
+dist/
+.next/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
