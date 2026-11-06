@@ -214,7 +214,7 @@ export function ChatComposer({ onSend, onStop, isStreaming, disabled, placeholde
       </div>
 
       <p className="mt-2 text-center text-xs text-muted-foreground">
-        Lujax is free and open source. Powered by 635 AI models from 34 providers.
+        Lujax — Ta propre IA, 100% gratuite et open-source.
       </p>
     </div>
   )

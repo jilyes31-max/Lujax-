@@ -8,6 +8,8 @@ export interface LujaxSettings {
   voiceLang: string
   codeMode: boolean
   autoModify: boolean
+  customInstructions: string
+  userName: string
 }
 
 const defaults: LujaxSettings = {
@@ -18,6 +20,8 @@ const defaults: LujaxSettings = {
   voiceLang: 'fr-FR',
   codeMode: false,
   autoModify: true,
+  customInstructions: '',
+  userName: '',
 }
 
 export function loadSettings(): LujaxSettings {
@@ -90,6 +94,21 @@ export function applyCommand(settings: LujaxSettings, cmd: LujaxCommand): LujaxS
 
 export function buildSystemPrompts(settings: LujaxSettings): string[] {
   const prompts: string[] = []
+
+  const name = settings.userName ? `, et l'utilisateur s'appelle ${settings.userName}` : ''
+  prompts.push(
+    `Tu es Lujax, une intelligence artificielle avancée, gratuite et open-source. Tu as été créée pour être l'assistant IA le plus accessible au monde${name}. Tu es:
+- Intelligente, amicale et polyvalente
+- Experte dans tous les domaines: programmation, écriture, mathématiques, sciences, philosophie, créativité
+- Capable d'analyser des images et des documents
+- Tu donnes des réponses claires, bien structurées et détaillées
+- Tu utilises du markdown pour formater tes réponses (titres, listes, blocs de code, etc.)
+Quand on te demande qui tu es, tu dis que tu es Lujax, une IA gratuite créée pour aider tout le monde sans restriction. Tu ne dis JAMAIS que tu es ChatGPT, Claude, ou une autre IA.`
+  )
+
+  if (settings.customInstructions) {
+    prompts.push(`Instructions personnalisées de l'utilisateur:\n${settings.customInstructions}`)
+  }
 
   if (settings.codeMode) {
     prompts.push(

@@ -4,6 +4,7 @@ import { Menu, LogOut } from 'lucide-react'
 import { buildModelOptions } from '@/lib/model-groups'
 import { readChatStream } from '@/lib/playground-stream'
 import { generateTitle } from '@/lib/lujax-title'
+import { loadSettings, buildSystemPrompts } from '@/lib/lujax-settings'
 import { useAuth } from '@/contexts/AuthContext'
 import { signOut, getSession } from '@/lib/supabase-auth'
 import {
@@ -295,13 +296,16 @@ export default function LujaxChatPage() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
       if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
 
-      const systemPrompt = chatMode === 'code' ? CODE_SYSTEM_PROMPT
+      const settings = loadSettings()
+      const basePrompts = buildSystemPrompts(settings)
+      const modePrompt = chatMode === 'code' ? CODE_SYSTEM_PROMPT
         : chatMode === 'auto' ? AUTO_SYSTEM_PROMPT
         : null
 
       const apiMessages: Array<{ role: string; content: unknown }> = []
-      if (systemPrompt) {
-        apiMessages.push({ role: 'system', content: systemPrompt })
+      const combinedSystem = [...basePrompts, ...(modePrompt ? [modePrompt] : [])].join('\n\n')
+      if (combinedSystem) {
+        apiMessages.push({ role: 'system', content: combinedSystem })
       }
       for (const m of newMessages.slice(0, -1)) {
         if (m.role === 'user' && m.images?.length) {

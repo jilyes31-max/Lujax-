@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, Sun, Moon, Monitor, Globe, Mic, Code, Wand2, Sparkles, Info } from 'lucide-react'
+import { X, Sun, Moon, Monitor, Globe, Mic, Code, Wand2, Sparkles, Info, User, MessageSquarePlus } from 'lucide-react'
 import { loadSettings, saveSettings, applyTheme, type LujaxSettings } from '@/lib/lujax-settings'
 
 interface SettingsModalProps {
@@ -167,6 +167,39 @@ export function SettingsModal({ open, onClose, onSettingsChange }: SettingsModal
           </p>
         </section>
 
+        {/* Identité */}
+        <section className="mb-5">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+            <User className="h-4 w-4" /> Ton nom
+          </h3>
+          <input
+            value={settings.userName}
+            onChange={e => update({ userName: e.target.value })}
+            placeholder="Comment tu t'appelles ?"
+            className="w-full rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-orange-500/50 focus:outline-none"
+          />
+          <p className="mt-1 px-1 text-[10px] text-muted-foreground">
+            Lujax utilisera ton nom pour personnaliser ses réponses
+          </p>
+        </section>
+
+        {/* Instructions personnalisées */}
+        <section className="mb-5">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+            <MessageSquarePlus className="h-4 w-4" /> Instructions personnalisées
+          </h3>
+          <textarea
+            value={settings.customInstructions}
+            onChange={e => update({ customInstructions: e.target.value })}
+            placeholder="Dis à Lujax comment tu veux qu'elle se comporte...&#10;&#10;Ex: Tu es un expert en Python. Réponds toujours avec des exemples de code. Utilise un ton décontracté."
+            rows={4}
+            className="w-full resize-none rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-orange-500/50 focus:outline-none"
+          />
+          <p className="mt-1 px-1 text-[10px] text-muted-foreground">
+            Ces instructions seront envoyées avec chaque message pour personnaliser l'IA
+          </p>
+        </section>
+
         {/* À propos */}
         <section>
           <h3 className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
@@ -183,7 +216,7 @@ export function SettingsModal({ open, onClose, onSettingsChange }: SettingsModal
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Assistant IA 100% gratuit. Pas besoin de clé API. Propulsé par 53+ modèles gratuits.
+              Ta propre IA, 100% gratuite. Pas besoin de clé API. Propulsé par 53+ modèles gratuits. Personnalise-la avec tes instructions.
             </p>
           </div>
         </section>

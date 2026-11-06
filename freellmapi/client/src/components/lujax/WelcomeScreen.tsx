@@ -35,13 +35,13 @@ const suggestionsByMode: Record<ChatMode, typeof chatSuggestions> = {
 }
 
 const subtitleByMode: Record<ChatMode, string> = {
-  chat: 'IA gratuite, propulsée par 635 modèles',
+  chat: 'Ta propre IA, gratuite et sans limites',
   code: 'Assistant de code alimenté par l\'IA',
   auto: 'Auto-modification intelligente',
 }
 
 const descByMode: Record<ChatMode, string> = {
-  chat: 'Demande-moi n\'importe quoi. Je peux écrire du code, analyser des documents, comprendre des images, et bien plus.',
+  chat: 'Je suis Lujax, ton assistant IA personnel. Pose-moi n\'importe quelle question — code, écriture, maths, images, recherche — je suis là pour t\'aider.',
   code: 'Mode Code activé. Je suis optimisé pour écrire, déboguer et expliquer du code. Collez du code ou décrivez ce que vous voulez construire.',
   auto: 'Mode Auto-Modification activé. Je peux analyser vos habitudes, optimiser vos paramètres et suggérer des améliorations personnalisées.',
 }
