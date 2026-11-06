@@ -87,14 +87,18 @@ export default function LujaxChatPage() {
 
   const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 
-  // Fetch the inference API key from the loopback-only config endpoint
+  // Fetch the inference API key from the loopback-only config endpoint.
+  // In production (LUJAX_MODE) the server skips inference auth, so the
+  // key is only needed during local development.
   const { data: apiKey = '' } = useQuery<string>({
     queryKey: ['lujax-config'],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/auth/lujax-config`)
-      if (!res.ok) return ''
-      const data = await res.json()
-      return data.apiKey || ''
+      try {
+        const res = await fetch(`${BASE}/api/auth/lujax-config`)
+        if (!res.ok) return ''
+        const data = await res.json()
+        return data.apiKey || ''
+      } catch { return '' }
     },
   })
 
