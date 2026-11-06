@@ -424,7 +424,7 @@ authRouter.post('/reset-password', (req: Request, res: Response) => {
 // This is strictly MORE restrictive than loopback alone: it proves the
 // caller holds a live Supabase session.
 authRouter.get('/lujax-config', async (req: Request, res: Response) => {
-  if (isLoopbackRemote(req)) {
+  if (process.env.LUJAX_MODE !== 'true' && isLoopbackRemote(req)) {
     res.json({ apiKey: getUnifiedApiKey() });
     return;
   }

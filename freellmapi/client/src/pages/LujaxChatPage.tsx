@@ -89,9 +89,6 @@ export default function LujaxChatPage() {
   })
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [autoModify, setAutoModify] = useState(() => {
-    try { return localStorage.getItem('lujax_auto_modify') === 'true' } catch { return false }
-  })
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -99,11 +96,6 @@ export default function LujaxChatPage() {
   const handleModeChange = useCallback((mode: ChatMode) => {
     setChatMode(mode)
     try { localStorage.setItem('lujax_chat_mode', mode) } catch {}
-  }, [])
-
-  const handleAutoModifyChange = useCallback((v: boolean) => {
-    setAutoModify(v)
-    try { localStorage.setItem('lujax_auto_modify', String(v)) } catch {}
   }, [])
 
   const writeActiveId = (id: string | null) => {
@@ -550,8 +542,7 @@ export default function LujaxChatPage() {
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
-        autoModify={autoModify}
-        onAutoModifyChange={handleAutoModifyChange}
+        onSettingsChange={() => {}}
       />
     </div>
   )

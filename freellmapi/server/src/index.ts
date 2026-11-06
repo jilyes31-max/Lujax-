@@ -73,8 +73,13 @@ async function main() {
         }
       }
       if (userCount() === 0) {
-        createUser('admin@lujax.app', 'LujaxAdmin2026!');
-        console.log('[lujax] created default admin user');
+        const adminPassword = process.env.LUJAX_ADMIN_PASSWORD;
+        if (adminPassword) {
+          createUser('admin@lujax.app', adminPassword);
+          console.log('[lujax] created admin user from LUJAX_ADMIN_PASSWORD');
+        } else {
+          console.warn('[lujax] no LUJAX_ADMIN_PASSWORD set — skipping admin creation (dashboard disabled)');
+        }
       }
       console.log('[lujax] startup seeding complete (v2)');
     } catch (err: any) {

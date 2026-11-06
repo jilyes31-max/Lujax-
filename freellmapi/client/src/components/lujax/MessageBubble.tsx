@@ -4,6 +4,25 @@ import { Markdown } from '@/components/markdown'
 import type { ChatMessage } from '@/pages/LujaxChatPage'
 import { friendlyModelName } from '@/lib/lujax-models'
 
+function isSafeUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+function isSafeImageSrc(src: string): boolean {
+  if (/^data:image\/(png|jpeg|gif|webp);base64,/i.test(src)) return true
+  try {
+    const parsed = new URL(src)
+    return parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 interface MessageBubbleProps {
   message: ChatMessage
   isStreaming?: boolean
@@ -73,18 +92,26 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
         {/* Web search sources */}
         {(message.meta?.webSearch as { sources?: { url: string; title: string }[] })?.sources && (message.meta?.webSearch as { sources?: { url: string; title: string }[] }).sources!.length > 0 && (
           <div className="mb-2 ml-9 flex flex-wrap gap-2">
-            {((message.meta?.webSearch as { sources: { url: string; title: string }[] }).sources).slice(0, 4).map((source: { url: string; title: string }, i: number) => (
-              <a
-                key={i}
-                href={source.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
-              >
-                <Globe className="h-3 w-3" />
-                <span className="max-w-[150px] truncate">{source.title}</span>
-              </a>
-            ))}
+            {((message.meta?.webSearch as { sources: { url: string; title: string }[] }).sources).slice(0, 4).map((source: { url: string; title: string }, i: number) => {
+              const href = isSafeUrl(source.url) ? source.url : undefined
+              return href ? (
+                <a
+                  key={source.url}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
+                >
+                  <Globe className="h-3 w-3" />
+                  <span className="max-w-[150px] truncate">{source.title}</span>
+                </a>
+              ) : (
+                <span key={i} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground">
+                  <Globe className="h-3 w-3" />
+                  <span className="max-w-[150px] truncate">{source.title}</span>
+                </span>
+              )
+            })}
           </div>
         )}
 
@@ -101,7 +128,7 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
           {/* User images */}
           {message.images && message.images.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {message.images.map((img, i) => (
+              {message.images.filter(isSafeImageSrc).map((img, i) => (
                 <img
                   key={i}
                   src={img}
