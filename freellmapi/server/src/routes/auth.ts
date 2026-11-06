@@ -46,7 +46,7 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
-// ── Brute-force throttle ──────────────────────────────────────────────────
+// ── Brute-force throttle ────────────────────────────────────────────────────────────────────
 // Simple in-memory per-email limiter. A local single-user tool doesn't need a
 // distributed store; this just blunts online password guessing.
 const MAX_ATTEMPTS = 5;
@@ -133,7 +133,7 @@ function isLoopbackRemote(req: Request): boolean {
   return !firstForwarded || isLoopbackAddress(firstForwarded);
 }
 
-// ── Desktop sign-in (#1399) ───────────────────────────────────────────────
+// ── Desktop sign-in (#1399) ─────────────────────────────────────────────────────────────────
 // The desktop app's account is a hidden machine user with a random password
 // nobody knows. Its own window gets sessions over IPC, but the same dashboard
 // opened in a normal browser tab (the tray's "Open in browser", a bookmark,
@@ -195,6 +195,8 @@ authRouter.get('/status', (req: Request, res: Response) => {
     authenticated: !!session,
     email: session?.email ?? null,
     desktop: desktopSignInAllowed(req),
+    lujax: process.env.LUJAX_MODE === 'true',
+    version: 'v2',
   });
 });
 
