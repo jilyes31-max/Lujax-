@@ -17,6 +17,7 @@ import {
 } from '../services/auth.js';
 import { setupCodeMatches, clearSetupCode } from '../lib/setup-code.js';
 import { generateResetCode, resetCodeMatches, clearResetCode } from '../lib/reset-code.js';
+import { getUnifiedApiKey } from '../db/index.js';
 
 export const authRouter = Router();
 
@@ -408,3 +409,15 @@ authRouter.post('/reset-password', (req: Request, res: Response) => {
   const token = createSession(user.userId);
   res.json({ success: true, token, email: user.email });
 });
+
+// Lujax config: returns the unified API key so the co-hosted chat frontend
+// can call /v1/chat/completions. Only available from loopback (same-origin
+// requests proxied by Vite dev server or served by this same process in prod).
+authRouter.get('/lujax-config', (req: Request, res: Response) => {
+  if (!isLoopbackRemote(req)) {
+    res.status(403).json({ error: { message: 'Only available from the local host', type: 'forbidden' } });
+    return;
+  }
+  res.json({ apiKey: getUnifiedApiKey() });
+});
+

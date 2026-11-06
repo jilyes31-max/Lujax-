@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Menu, LogOut } from 'lucide-react'
-import { apiFetch } from '@/lib/api'
 import { buildModelOptions } from '@/lib/model-groups'
 import { readChatStream } from '@/lib/playground-stream'
 import { generateTitle } from '@/lib/lujax-title'
@@ -86,21 +85,45 @@ export default function LujaxChatPage() {
     enabled: !!user,
   })
 
-  // Fetch models from FreeLLMAPI backend
-  const { data: fallbackEntries = [] } = useQuery<FallbackEntry[]>({
-    queryKey: ['lujax-fallback'],
-    queryFn: () => apiFetch<FallbackEntry[]>('/api/fallback'),
-  })
+  const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
 
-  const { data: unifyOn = false } = useQuery<boolean>({
-    queryKey: ['lujax-unify'],
+  // Fetch the inference API key from the loopback-only config endpoint
+  const { data: apiKey = '' } = useQuery<string>({
+    queryKey: ['lujax-config'],
     queryFn: async () => {
-      try {
-        const res = await apiFetch<{ enabled: boolean }>('/api/settings/unify')
-        return res.enabled
-      } catch { return false }
+      const res = await fetch(`${BASE}/api/auth/lujax-config`)
+      if (!res.ok) return ''
+      const data = await res.json()
+      return data.apiKey || ''
     },
   })
+
+  // Fetch models from /v1/models using the unified API key
+  const { data: fallbackEntries = [] } = useQuery<FallbackEntry[]>({
+    queryKey: ['lujax-models', apiKey],
+    queryFn: async () => {
+      const headers: Record<string, string> = {}
+      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
+      const res = await fetch(`${BASE}/v1/models`, { headers })
+      if (!res.ok) return []
+      const json = await res.json()
+      interface V1Model { id: string; owned_by?: string; meta?: { display_name?: string; canonical_id?: string; size_label?: string; intelligence_rank?: number } }
+      return ((json.data || []) as V1Model[]).map((m: V1Model) => ({
+        modelDbId: 0,
+        priority: 0,
+        enabled: true,
+        platform: m.owned_by || 'unknown',
+        modelId: m.id,
+        canonicalId: m.meta?.canonical_id,
+        displayName: m.meta?.display_name || m.id,
+        sizeLabel: m.meta?.size_label || 'Medium',
+        intelligenceRank: m.meta?.intelligence_rank || 0,
+      }))
+    },
+    enabled: !!apiKey,
+  })
+
+  const unifyOn = false
 
   const modelOptions = buildModelOptions(
     fallbackEntries
@@ -228,9 +251,8 @@ export default function LujaxChatPage() {
     abortRef.current = controller
 
     try {
-      const token = localStorage.getItem('freellmapi_dashboard_token')
       const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-      if (token) headers['Authorization'] = `Bearer ${token}`
+      if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
 
       const apiMessages = newMessages.slice(0, -1).map(m => {
         if (m.role === 'user' && m.images?.length) {
@@ -245,7 +267,6 @@ export default function LujaxChatPage() {
         return { role: m.role, content: m.content }
       })
 
-      const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
       const res = await fetch(`${BASE}/v1/chat/completions`, {
         method: 'POST',
         headers,
@@ -358,7 +379,7 @@ export default function LujaxChatPage() {
       }
       setIsStreaming(false)
     }
-  }, [messages, selectedModel, isStreaming, saveConversation])
+  }, [messages, selectedModel, isStreaming, saveConversation, apiKey, BASE])
 
   const handleStop = () => {
     abortRef.current?.abort()
