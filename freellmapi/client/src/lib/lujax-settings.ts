@@ -28,7 +28,24 @@ export function loadSettings(): LujaxSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return { ...defaults }
-    return { ...defaults, ...JSON.parse(raw) }
+    const parsed = JSON.parse(raw)
+    const settings: LujaxSettings = { ...defaults, ...parsed }
+
+    // Validate and sanitize individual fields, falling back to defaults
+    if (!['light', 'dark', 'system'].includes(settings.theme)) {
+      settings.theme = defaults.theme
+    }
+    if (!['fr', 'en'].includes(settings.language)) {
+      settings.language = defaults.language
+    }
+    const speed = Number(settings.voiceSpeed)
+    if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) {
+      settings.voiceSpeed = defaults.voiceSpeed
+    } else {
+      settings.voiceSpeed = speed
+    }
+
+    return settings
   } catch {
     return { ...defaults }
   }

@@ -1,17 +1,36 @@
 // Auto-generate conversation titles from the first user message.
 // Uses FreeLLMAPI's own /v1/chat/completions to generate a short title.
+// Fixed: uses the unified API key (via lujax-config) instead of the
+// dashboard token, which is not accepted by the inference endpoint.
 
-import { getToken } from './api'
+import { getSession } from './supabase-auth'
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '')
+
+/** Resolve the unified API key the same way the chat page does. */
+async function getLujaxApiKey(): Promise<string> {
+  try {
+    const headers: Record<string, string> = {}
+    const session = await getSession()
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`
+    }
+    const res = await fetch(`${BASE}/api/auth/lujax-config`, { headers })
+    if (!res.ok) return ''
+    const data = await res.json()
+    return data.apiKey || ''
+  } catch {
+    return ''
+  }
+}
 
 export async function generateTitle(firstMessage: string): Promise<string> {
   const truncated = firstMessage.slice(0, 500)
 
   try {
-    const token = getToken()
+    const apiKey = await getLujaxApiKey()
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-    if (token) headers['Authorization'] = `Bearer ${token}`
+    if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
 
     const res = await fetch(`${BASE}/v1/chat/completions`, {
       method: 'POST',

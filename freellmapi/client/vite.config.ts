@@ -19,6 +19,21 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    build: {
+      target: 'es2022',
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (!id.includes('node_modules')) return undefined
+            const inPkg = (...pkgs: string[]) => pkgs.some((p) => id.includes(`/node_modules/${p}/`))
+            if (inPkg('react', 'react-dom', 'react-router', 'react-router-dom', 'scheduler')) return 'react-vendor'
+            if (inPkg('react-markdown', 'remark-gfm')) return 'markdown'
+            if (inPkg('@supabase/supabase-js')) return 'supabase'
+            return undefined
+          },
+        },
+      },
+    },
     server: {
       proxy: {
         // Force IPv4 — on Windows + Node 17+, `localhost` resolves to ::1 first,

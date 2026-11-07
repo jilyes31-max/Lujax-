@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { memo, useState, useId } from 'react'
 import { Check, Copy, RefreshCw, Sparkles, User, ChevronDown, ChevronUp, Globe } from 'lucide-react'
 import { Markdown } from '@/components/markdown'
-import type { ChatMessage } from '@/pages/LujaxChatPage'
+import type { ChatMessage } from '@/hooks/types'
 import { friendlyModelName } from '@/lib/lujax-models'
 
 function isSafeUrl(url: string): boolean {
@@ -29,9 +29,10 @@ interface MessageBubbleProps {
   onRetry?: () => void
 }
 
-export function MessageBubble({ message, isStreaming, onRetry }: MessageBubbleProps) {
+function MessageBubbleImpl({ message, isStreaming, onRetry }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [showReasoning, setShowReasoning] = useState(false)
+  const reasoningId = useId()
   const isUser = message.role === 'user'
   const isError = message.isError
 
@@ -41,22 +42,27 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
     setTimeout(() => setCopied(false), 2000)
   }
 
+  const imageCount = message.images?.length ?? 0
+
   return (
-    <div className={`group py-5 ${isUser ? '' : ''}`}>
+    <article
+      aria-label={isUser ? 'Votre message' : 'Message de Lujax'}
+      aria-busy={isStreaming}
+      className={`group py-5 ${isUser ? '' : ''}`}
+    >
       <div className="mx-auto max-w-3xl px-4">
-        {/* Avatar + name row */}
         <div className="mb-2 flex items-center gap-2">
           {isUser ? (
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground/10">
-              <User className="h-3.5 w-3.5 text-foreground/70" />
+              <User className="h-3.5 w-3.5 text-foreground/70" aria-hidden="true" />
             </div>
           ) : (
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-amber-600">
-              <Sparkles className="h-3.5 w-3.5 text-white" />
+              <Sparkles className="h-3.5 w-3.5 text-white" aria-hidden="true" />
             </div>
           )}
           <span className="text-sm font-medium text-foreground">
-            {isUser ? 'You' : 'Lujax'}
+            {isUser ? 'Vous' : 'Lujax'}
           </span>
           {!isUser && typeof message.meta?.model === 'string' && (
             <span className="text-xs text-muted-foreground">
@@ -64,32 +70,33 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
             </span>
           )}
           {isStreaming && (
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" />
-              thinking...
+            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" aria-hidden="true" />
+              Lujax réfléchit...
             </span>
           )}
         </div>
 
-        {/* Reasoning (collapsible) */}
         {message.reasoning && (
           <div className="mb-2 ml-9">
             <button
+              type="button"
               onClick={() => setShowReasoning(!showReasoning)}
+              aria-expanded={showReasoning}
+              aria-controls={reasoningId}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             >
-              {showReasoning ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              Reasoning
+              {showReasoning ? <ChevronUp className="h-3 w-3" aria-hidden="true" /> : <ChevronDown className="h-3 w-3" aria-hidden="true" />}
+              Raisonnement
             </button>
             {showReasoning && (
-              <div className="mt-1 rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+              <div id={reasoningId} className="mt-1 rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
                 <Markdown>{message.reasoning}</Markdown>
               </div>
             )}
           </div>
         )}
 
-        {/* Web search sources */}
         {(message.meta?.webSearch as { sources?: { url: string; title: string }[] })?.sources && (message.meta?.webSearch as { sources?: { url: string; title: string }[] }).sources!.length > 0 && (
           <div className="mb-2 ml-9 flex flex-wrap gap-2">
             {((message.meta?.webSearch as { sources: { url: string; title: string }[] }).sources).slice(0, 4).map((source: { url: string; title: string }, i: number) => {
@@ -102,12 +109,12 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
                   rel="noopener noreferrer"
                   className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:border-primary/30 hover:text-foreground"
                 >
-                  <Globe className="h-3 w-3" />
+                  <Globe className="h-3 w-3" aria-hidden="true" />
                   <span className="max-w-[150px] truncate">{source.title}</span>
                 </a>
               ) : (
                 <span key={i} className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground">
-                  <Globe className="h-3 w-3" />
+                  <Globe className="h-3 w-3" aria-hidden="true" />
                   <span className="max-w-[150px] truncate">{source.title}</span>
                 </span>
               )
@@ -115,24 +122,22 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
           </div>
         )}
 
-        {/* Message content */}
         <div className={`ml-9 ${isError ? 'text-destructive' : ''}`}>
           {isUser ? (
             <div className="whitespace-pre-wrap text-sm text-foreground">{message.content}</div>
           ) : (
-            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground">
+            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground" aria-live={isStreaming ? 'polite' : undefined}>
               <Markdown>{message.content}</Markdown>
             </div>
           )}
 
-          {/* User images */}
-          {message.images && message.images.length > 0 && (
+          {message.images && imageCount > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
               {message.images.filter(isSafeImageSrc).map((img, i) => (
                 <img
                   key={i}
                   src={img}
-                  alt={`Attachment ${i + 1}`}
+                  alt={`Image jointe ${i + 1} sur ${imageCount}`}
                   className="h-32 w-auto rounded-lg border border-border object-cover"
                 />
               ))}
@@ -140,28 +145,33 @@ export function MessageBubble({ message, isStreaming, onRetry }: MessageBubblePr
           )}
         </div>
 
-        {/* Action buttons (show on hover for assistant messages) */}
         {!isUser && !isStreaming && message.content && (
           <div className="ml-9 mt-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
             <button
+              type="button"
               onClick={handleCopy}
+              aria-label={copied ? 'Copié' : 'Copier le message'}
               className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
             >
-              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? <Check className="h-3 w-3" aria-hidden="true" /> : <Copy className="h-3 w-3" aria-hidden="true" />}
+              {copied ? 'Copié' : 'Copier'}
             </button>
             {onRetry && (
               <button
+                type="button"
                 onClick={onRetry}
+                aria-label="Réessayer la réponse"
                 className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
               >
-                <RefreshCw className="h-3 w-3" />
-                Retry
+                <RefreshCw className="h-3 w-3" aria-hidden="true" />
+                Réessayer
               </button>
             )}
           </div>
         )}
       </div>
-    </div>
+    </article>
   )
 }
+
+export const MessageBubble = memo(MessageBubbleImpl)

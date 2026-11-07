@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink, Link, useLocation, useNavigate } from 'react-router-dom'
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ChevronDown, KeyRound, LogOut, Menu, MoreHorizontal, RefreshCw, Search, Settings, Sparkles } from 'lucide-react'
@@ -29,27 +29,35 @@ import { I18nProvider, useI18n } from '@/i18n'
 import { logout } from '@/lib/api'
 import { toast } from '@/lib/toast'
 import { ThemeProvider } from '@/theme'
-import KeysPage from '@/pages/KeysPage'
-import PlaygroundPage from '@/pages/PlaygroundPage'
-import FallbackPage from '@/pages/FallbackPage'
-import ModelDetailPage from '@/pages/ModelDetailPage'
-import FusionPage from '@/pages/FusionPage'
-import EmbeddingsPage from '@/pages/EmbeddingsPage'
-import ImagePage from '@/pages/ImagePage'
-import VideoPage from '@/pages/VideoPage'
-import AudioPage from '@/pages/AudioPage'
-import SearchPage from '@/pages/SearchPage'
-import DecisionPage from '@/pages/DecisionPage'
-import MediaDetailPage from '@/pages/MediaDetailPage'
-import EmbeddingDetailPage from '@/pages/EmbeddingDetailPage'
-import AnalyticsPage from '@/pages/AnalyticsPage'
-import LogsPage from '@/pages/LogsPage'
-import PremiumPage from '@/pages/PremiumPage'
-import NotFoundPage from '@/pages/NotFoundPage'
-import AgentsPage from '@/pages/AgentsPage'
-import LujaxChatPage from '@/pages/LujaxChatPage'
-import LujaxAuthPage from '@/pages/LujaxAuthPage'
+const KeysPage = lazy(() => import('@/pages/KeysPage'))
+const PlaygroundPage = lazy(() => import('@/pages/PlaygroundPage'))
+const FallbackPage = lazy(() => import('@/pages/FallbackPage'))
+const ModelDetailPage = lazy(() => import('@/pages/ModelDetailPage'))
+const FusionPage = lazy(() => import('@/pages/FusionPage'))
+const EmbeddingsPage = lazy(() => import('@/pages/EmbeddingsPage'))
+const ImagePage = lazy(() => import('@/pages/ImagePage'))
+const VideoPage = lazy(() => import('@/pages/VideoPage'))
+const AudioPage = lazy(() => import('@/pages/AudioPage'))
+const SearchPage = lazy(() => import('@/pages/SearchPage'))
+const DecisionPage = lazy(() => import('@/pages/DecisionPage'))
+const MediaDetailPage = lazy(() => import('@/pages/MediaDetailPage'))
+const EmbeddingDetailPage = lazy(() => import('@/pages/EmbeddingDetailPage'))
+const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage'))
+const LogsPage = lazy(() => import('@/pages/LogsPage'))
+const PremiumPage = lazy(() => import('@/pages/PremiumPage'))
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
+const AgentsPage = lazy(() => import('@/pages/AgentsPage'))
+const LujaxChatPage = lazy(() => import('@/pages/LujaxChatPage'))
+const LujaxAuthPage = lazy(() => import('@/pages/LujaxAuthPage'))
 import { SupabaseAuthProvider, useAuth } from '@/contexts/AuthContext'
+
+function LoadingSpinner() {
+  return (
+    <div className="flex h-full min-h-[40vh] w-full items-center justify-center" role="status" aria-label="Loading">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
+    </div>
+  )
+}
 
 // Every failed mutation surfaces as an error toast, so no action fails
 // silently. A page that already shows the failure inline can opt out with
@@ -420,7 +428,7 @@ function LujaxAuthGate({ children }: { children: ReactNode }) {
       <div className="h-6 w-6 animate-spin rounded-full border-2 border-orange-500 border-t-transparent" />
     </div>
   )
-  if (!user) return <LujaxAuthPage />
+  if (!user) return <Suspense fallback={<LoadingSpinner />}><LujaxAuthPage /></Suspense>
   return <>{children}</>
 }
 
@@ -483,6 +491,7 @@ function DashboardShell() {
         <Navbar />
         <PageContainer>
           <PageBoundary>
+            <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               <Route path="/models" element={<Navigate to="/models/chat" replace />} />
               <Route path="/models/chat" element={<FallbackPage />} />
@@ -510,6 +519,7 @@ function DashboardShell() {
               <Route path="/health" element={<Navigate to="/keys" replace />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
+            </Suspense>
           </PageBoundary>
         </PageContainer>
         <Toaster />
@@ -527,7 +537,9 @@ function AppRoutes() {
     return (
       <LujaxAuthGate>
         <div className="h-dvh overflow-hidden bg-background">
-          <LujaxChatPage />
+          <Suspense fallback={<LoadingSpinner />}>
+            <LujaxChatPage />
+          </Suspense>
         </div>
       </LujaxAuthGate>
     )

@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Sparkles, Code, FileText, Search, ImageIcon, Lightbulb, Terminal, Bug, Database, Wand2, Zap, Settings } from 'lucide-react'
 import type { ChatMode } from './ModeSelector'
 
@@ -51,13 +52,13 @@ interface WelcomeScreenProps {
   mode?: ChatMode
 }
 
-export function WelcomeScreen({ onSuggestionClick, mode = 'chat' }: WelcomeScreenProps) {
+function WelcomeScreenImpl({ onSuggestionClick, mode = 'chat' }: WelcomeScreenProps) {
   const suggestions = suggestionsByMode[mode]
   const modeIcon = mode === 'code' ? Terminal : mode === 'auto' ? Wand2 : Sparkles
   const ModeIcon = modeIcon
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 pb-32">
+    <section aria-labelledby="welcome-title" className="flex flex-1 flex-col items-center justify-center px-4 pb-32">
       <div className="mb-8 flex items-center gap-3">
         <div className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg ${
           mode === 'code'
@@ -66,10 +67,10 @@ export function WelcomeScreen({ onSuggestionClick, mode = 'chat' }: WelcomeScree
               ? 'bg-gradient-to-br from-violet-400 to-purple-600'
               : 'bg-gradient-to-br from-orange-400 to-amber-600'
         }`}>
-          <ModeIcon className="h-6 w-6 text-white" />
+          <ModeIcon className="h-6 w-6 text-white" aria-hidden="true" />
         </div>
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">
+          <h1 id="welcome-title" className="text-2xl font-semibold text-foreground">
             {mode === 'code' ? 'Lujax Code' : mode === 'auto' ? 'Lujax Auto' : 'Lujax'}
           </h1>
           <p className="text-sm text-muted-foreground">{subtitleByMode[mode]}</p>
@@ -80,18 +81,23 @@ export function WelcomeScreen({ onSuggestionClick, mode = 'chat' }: WelcomeScree
         {descByMode[mode]}
       </p>
 
-      <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
+      <h2 id="welcome-suggestions" className="sr-only">Suggestions pour commencer</h2>
+      <div role="group" aria-labelledby="welcome-suggestions" className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2">
         {suggestions.map((s, i) => (
           <button
             key={i}
+            type="button"
             onClick={() => onSuggestionClick(s.text)}
+            aria-label={`Suggestion : ${s.text}`}
             className="group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-all hover:border-primary/30 hover:bg-accent hover:shadow-sm"
           >
-            <s.icon className={`h-4 w-4 shrink-0 ${s.color} transition-transform group-hover:scale-110`} />
+            <s.icon className={`h-4 w-4 shrink-0 ${s.color} transition-transform group-hover:scale-110`} aria-hidden="true" />
             <span className="text-sm text-foreground">{s.text}</span>
           </button>
         ))}
       </div>
-    </div>
+    </section>
   )
 }
+
+export const WelcomeScreen = memo(WelcomeScreenImpl)
