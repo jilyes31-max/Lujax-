@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/copy-button'
 import { CodeBlock } from '@/components/code-block'
 import { useI18n } from '@/i18n'
-import { ARTIFACT_SANDBOX, artifactMimeType, artifactSrcDoc, type Artifact } from '@/lib/artifacts'
+import { ARTIFACT_SANDBOX, ARTIFACT_FRAME_URL, artifactMimeType, postArtifact, type Artifact } from '@/lib/artifacts'
 import { ARTIFACT_KEY_STEP, clampArtifactWidth, draggedArtifactWidth } from '@/lib/artifact-panel-size'
 
 // The artifact side panel: what a reply built, running. Preview is a
@@ -37,16 +37,12 @@ export const ARTIFACT_PANEL_TRANSITION_MS = 280
 export function ArtifactPanel({ artifact, open, width, onWidthChange, onWidthCommit, onClose }: ArtifactPanelProps) {
   const { t } = useI18n()
   const [tab, setTab] = useState<ArtifactTab>('preview')
-  // Bumping the key remounts the iframe, which re-runs the document.
   const [run, setRun] = useState(0)
   const [dragging, setDragging] = useState(false)
   const drag = useRef<{ startX: number; startWidth: number } | null>(null)
-  // First paint at width 0, then the transition carries it to `width` — that
-  // is the slide-in. A rAF callback runs BEFORE that frame paints, so flipping
-  // there would skip the 0 state entirely; the width is forced through layout
-  // first (reading offsetWidth) and the flip waits one more frame.
   const [mounted, setMounted] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
   useEffect(() => {
     let second = 0
     const first = requestAnimationFrame(() => {
@@ -55,6 +51,11 @@ export function ArtifactPanel({ artifact, open, width, onWidthChange, onWidthCom
     })
     return () => { cancelAnimationFrame(first); cancelAnimationFrame(second) }
   }, [])
+
+  useEffect(() => {
+    if (tab !== 'preview' || !iframeRef.current) return
+    postArtifact(iframeRef.current, artifact)
+  }, [artifact, run, tab])
   const title = artifact.title ?? t(artifact.kind === 'svg' ? 'playground.artifactSvg' : 'playground.artifactHtml')
 
   function download() {
@@ -165,10 +166,10 @@ export function ArtifactPanel({ artifact, open, width, onWidthChange, onWidthCom
         <div className="relative min-h-0 flex-1 overflow-hidden">
           {tab === 'preview' ? (
             <iframe
-              key={`${artifact.id}:${run}`}
+              ref={iframeRef}
               title={title}
               sandbox={ARTIFACT_SANDBOX}
-              srcDoc={artifactSrcDoc(artifact)}
+              src={ARTIFACT_FRAME_URL}
               className="h-full w-full border-0 bg-white"
             />
           ) : (

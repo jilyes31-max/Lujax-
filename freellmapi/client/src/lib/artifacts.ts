@@ -78,3 +78,19 @@ export const ARTIFACT_SANDBOX = 'allow-scripts allow-forms allow-modals allow-po
 export function artifactMimeType(kind: ArtifactKind): string {
   return kind === 'svg' ? 'image/svg+xml' : 'text/html'
 }
+
+/** URL of the artifact preview frame (with strict CSP sandbox). */
+export const ARTIFACT_FRAME_URL = new URL('/artifact-frame', window.location.origin).toString()
+
+/** Post artifact content to the frame iframe for rendering. */
+export function postArtifact(frameElement: HTMLIFrameElement, artifact: Artifact): void {
+  const frameWindow = frameElement.contentWindow
+  if (!frameWindow) return
+  frameWindow.postMessage(
+    {
+      type: 'lujax:artifact',
+      html: artifactSrcDoc(artifact),
+    },
+    window.location.origin
+  )
+}

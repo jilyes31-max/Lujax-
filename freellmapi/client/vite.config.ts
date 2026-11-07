@@ -40,6 +40,7 @@ export default defineConfig(({ mode }) => {
         // which can collide with wslrelay / Docker Desktop listeners on the same port.
         '/api': `http://127.0.0.1:${serverPort}`,
         '/v1': `http://127.0.0.1:${serverPort}`,
+        '/artifact-frame': `http://127.0.0.1:${serverPort}`,
       },
     },
   }
