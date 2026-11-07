@@ -59,6 +59,13 @@ function WelcomeScreenImpl({ onSuggestionClick, mode = 'chat' }: WelcomeScreenPr
 
   return (
     <section aria-labelledby="welcome-title" className="flex flex-1 flex-col items-center justify-center px-4 pb-32">
+      <img
+        src="/logo.png"
+        alt="Lujax logo"
+        width={80}
+        height={80}
+        className="mb-6"
+      />
       <div className="mb-8 flex items-center gap-3">
         <div className={`flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg ${
           mode === 'code'

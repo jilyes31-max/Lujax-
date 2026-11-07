@@ -1,10 +1,12 @@
-import { memo, isValidElement, useContext, type ReactNode } from 'react'
+import { memo, isValidElement, useContext, useState, type ReactNode } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { AppWindow, Image as ImageIcon } from 'lucide-react'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { AppWindow, Image as ImageIcon, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { CopyButton } from './copy-button'
-import { CodeBlock } from './code-block'
 import { artifactKindOf, type ArtifactKind } from '@/lib/artifacts'
 import { ArtifactHostContext } from '@/lib/artifact-host'
 import { useI18n } from '@/i18n'
@@ -57,23 +59,67 @@ function nodeText(node: ReactNode): string {
   return ''
 }
 
+function CodeBlockCopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      aria-label={copied ? 'Copied' : 'Copy code'}
+      className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+    >
+      {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+      {copied ? 'Copied!' : 'Copy'}
+    </button>
+  )
+}
+
 function Pre({ children }: { children?: ReactNode }) {
   const host = useContext(ArtifactHostContext)
+  const language = fenceLanguage(children)
+  const code = nodeText(children).replace(/\n$/, '')
+
   if (host) {
-    const language = fenceLanguage(children)
-    const code = nodeText(children).replace(/\n$/, '')
     const kind = artifactKindOf(language, code)
     if (kind) return <ArtifactCard kind={kind} language={language} code={code} />
   }
+
   return (
-    <pre className="group relative my-2 overflow-x-auto rounded-lg border bg-background/60 p-3 first:mt-0 last:mb-0">
-      <CopyButton
-        text={nodeText(children).replace(/\n$/, '')}
-        label="Copy code"
-        className="absolute right-2 top-2 size-7 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
-      />
-      {children}
-    </pre>
+    <div className="my-2 overflow-hidden rounded-lg first:mt-0 last:mb-0" style={{ backgroundColor: '#1e1e2e' }}>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
+        <span className="text-xs text-gray-400 font-mono">
+          {language || 'code'}
+        </span>
+        <CodeBlockCopyButton text={code} />
+      </div>
+      <div className="overflow-x-auto">
+        <SyntaxHighlighter
+          style={oneDark}
+          language={language || 'text'}
+          PreTag="div"
+          customStyle={{
+            margin: 0,
+            padding: '1rem',
+            background: 'transparent',
+            fontSize: '12.5px',
+            lineHeight: '1.625',
+          }}
+          codeTagProps={{
+            style: {
+              fontFamily: 'var(--font-mono, ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace)',
+            },
+          }}
+        >
+          {code}
+        </SyntaxHighlighter>
+      </div>
+    </div>
   )
 }
 
@@ -149,8 +195,9 @@ const components: Components = {
   code: ({ className, children, ...props }) => {
     const isBlock = /language-/.test(className ?? '')
     if (isBlock) {
-      const language = /language-([^\s]+)/.exec(className ?? '')?.[1] ?? null
-      return <CodeBlock code={nodeText(children).replace(/\n$/, '')} language={language} className={className} />
+      // Block code is handled by the <Pre> wrapper with SyntaxHighlighter;
+      // just pass through so Pre can extract the text and language.
+      return <code className={className} {...props}>{children}</code>
     }
     return (
       <code
@@ -172,7 +219,7 @@ interface MarkdownProps {
 function MarkdownInner({ children, className }: MarkdownProps) {
   return (
     <div className={cn('text-sm leading-relaxed', className)}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
         {children}
       </ReactMarkdown>
     </div>
