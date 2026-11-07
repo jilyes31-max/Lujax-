@@ -9,6 +9,7 @@ import { AppWindow, Image as ImageIcon, Copy, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { artifactKindOf, type ArtifactKind } from '@/lib/artifacts'
 import { ArtifactHostContext } from '@/lib/artifact-host'
+import { CodeRenderersContext } from '@/lib/code-renderers'
 import { useI18n } from '@/i18n'
 
 
@@ -82,8 +83,13 @@ function CodeBlockCopyButton({ text }: { text: string }) {
 
 function Pre({ children }: { children?: ReactNode }) {
   const host = useContext(ArtifactHostContext)
+  const renderers = useContext(CodeRenderersContext)
   const language = fenceLanguage(children)
   const code = nodeText(children).replace(/\n$/, '')
+
+  if (renderers?.renderers[language]) {
+    return <>{renderers.renderers[language](code, language)}</>
+  }
 
   if (host) {
     const kind = artifactKindOf(language, code)

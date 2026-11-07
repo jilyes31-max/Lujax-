@@ -13,6 +13,7 @@ import { ModelPicker } from '@/components/lujax/ModelPicker'
 import { WelcomeScreen } from '@/components/lujax/WelcomeScreen'
 import { ModeSelector, type ChatMode } from '@/components/lujax/ModeSelector'
 import { MessageSkeleton } from '@/components/lujax/MessageSkeleton'
+import { CodeRenderersProvider } from '@/components/lujax/code-renderers'
 
 const SettingsModal = lazy(() =>
   import('@/components/lujax/SettingsModal').then((m) => ({ default: m.SettingsModal })),
@@ -126,7 +127,8 @@ export default function LujaxChatPage() {
       : undefined
 
   return (
-    <div className="flex h-full">
+    <CodeRenderersProvider>
+      <div className="flex h-full">
       <a
         href="#lujax-main"
         onClick={e => {
@@ -237,6 +239,7 @@ export default function LujaxChatPage() {
           />
         </Suspense>
       )}
-    </div>
+      </div>
+    </CodeRenderersProvider>
   )
 }
