@@ -1,5 +1,6 @@
 import { useRef, useState, type KeyboardEvent } from 'react'
-import { Plus, Search, Trash2, Edit3, Check, X, Sparkles, MessageSquare, LogOut, Settings } from 'lucide-react'
+import { Plus, Search, Trash2, Edit3, Check, X, Sparkles, MessageSquare, LogOut, Settings, Download } from 'lucide-react'
+import { getConversation } from '@/lib/supabase-conversations'
 
 interface ConversationSummary {
   id: string
@@ -81,6 +82,27 @@ export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete
     restoreOptionFocus(id)
   }
 
+  const handleExport = async (c: ConversationSummary) => {
+    try {
+      const convo = await getConversation(c.id)
+      const lines: string[] = [`# ${convo.title}`, '']
+      for (const msg of convo.messages) {
+        if (msg.role === 'system') continue
+        const author = msg.role === 'user' ? '**Vous:**' : '**Lujax:**'
+        lines.push(`${author} ${msg.content}`, '')
+      }
+      const blob = new Blob([lines.join('\n')], { type: 'text/markdown;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${c.title.replace(/[/\\?%*:|"<>]/g, '_')}.md`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      // silently fail — user can retry
+    }
+  }
+
   // Roving tabindex: the active conversation (or the first one) is the single tab stop.
   const tabStopId = filtered.some(c => c.id === activeId) ? activeId : filtered[0]?.id ?? null
 
@@ -120,13 +142,13 @@ export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete
   return (
     <>
       {isOpen && onClose && (
-        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />
+        <div className="animate-sidebar-overlay fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={onClose} />
       )}
 
       <aside
         role="navigation"
         aria-label="Conversations"
-        className={`fixed left-0 top-0 z-50 flex h-full w-72 flex-col border-r border-border bg-background transition-transform lg:relative lg:z-0 lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 flex h-full w-72 flex-col border-r border-border bg-background transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:relative lg:z-0 lg:translate-x-0 lg:transition-none ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -224,6 +246,14 @@ export function ChatSidebar({ conversations, activeId, onSelect, onNew, onDelete
                             <span className="truncate text-xs">{c.title}</span>
                           </button>
                           <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-focus-within/item:opacity-100 group-hover/item:opacity-100">
+                            <button
+                              type="button"
+                              onClick={e => { e.stopPropagation(); handleExport(c) }}
+                              aria-label={`Exporter la conversation ${c.title}`}
+                              className="rounded p-0.5 hover:bg-accent"
+                            >
+                              <Download className="h-3 w-3" aria-hidden="true" />
+                            </button>
                             <button
                               type="button"
                               onClick={e => { e.stopPropagation(); startRename(c) }}

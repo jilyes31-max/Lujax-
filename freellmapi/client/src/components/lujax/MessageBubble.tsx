@@ -1,5 +1,5 @@
-import { memo, useState, useId } from 'react'
-import { Check, Copy, RefreshCw, Sparkles, User, ChevronDown, ChevronUp, Globe } from 'lucide-react'
+import { memo, useState, useId, useRef, useEffect } from 'react'
+import { Check, Copy, RefreshCw, Sparkles, User, ChevronDown, ChevronUp, Globe, Pencil, X, Send } from 'lucide-react'
 import { Markdown } from '@/components/markdown'
 import type { ChatMessage } from '@/hooks/types'
 import { friendlyModelName } from '@/lib/lujax-models'
@@ -27,14 +27,59 @@ interface MessageBubbleProps {
   message: ChatMessage
   isStreaming?: boolean
   onRetry?: () => void
+  onEdit?: (newContent: string) => void
 }
 
-function MessageBubbleImpl({ message, isStreaming, onRetry }: MessageBubbleProps) {
+function MessageBubbleImpl({ message, isStreaming, onRetry, onEdit }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [showReasoning, setShowReasoning] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editContent, setEditContent] = useState('')
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null)
   const reasoningId = useId()
   const isUser = message.role === 'user'
   const isError = message.isError
+
+  useEffect(() => {
+    if (isEditing && editTextareaRef.current) {
+      editTextareaRef.current.focus()
+      editTextareaRef.current.setSelectionRange(
+        editTextareaRef.current.value.length,
+        editTextareaRef.current.value.length,
+      )
+    }
+  }, [isEditing])
+
+  const handleStartEdit = () => {
+    setEditContent(message.content)
+    setIsEditing(true)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditContent('')
+  }
+
+  const handleSubmitEdit = () => {
+    const trimmed = editContent.trim()
+    if (!trimmed || trimmed === message.content) {
+      handleCancelEdit()
+      return
+    }
+    onEdit?.(trimmed)
+    setIsEditing(false)
+    setEditContent('')
+  }
+
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmitEdit()
+    }
+    if (e.key === 'Escape') {
+      handleCancelEdit()
+    }
+  }
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content)
@@ -48,16 +93,16 @@ function MessageBubbleImpl({ message, isStreaming, onRetry }: MessageBubbleProps
     <article
       aria-label={isUser ? 'Votre message' : 'Message de Lujax'}
       aria-busy={isStreaming}
-      className={`group py-5 ${isUser ? '' : ''}`}
+      className={`group py-3 sm:py-5 ${isUser ? 'animate-msg-slide-right' : 'animate-msg-slide-left'}`}
     >
-      <div className="mx-auto max-w-3xl px-4">
+      <div className="mx-auto max-w-3xl px-3 sm:px-4">
         <div className="mb-2 flex items-center gap-2">
           {isUser ? (
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-foreground/10">
               <User className="h-3.5 w-3.5 text-foreground/70" aria-hidden="true" />
             </div>
           ) : (
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-amber-600">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-red-700">
               <Sparkles className="h-3.5 w-3.5 text-white" aria-hidden="true" />
             </div>
           )}
@@ -71,14 +116,14 @@ function MessageBubbleImpl({ message, isStreaming, onRetry }: MessageBubbleProps
           )}
           {isStreaming && (
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite">
-              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-orange-400" aria-hidden="true" />
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" aria-hidden="true" />
               Lujax réfléchit...
             </span>
           )}
         </div>
 
         {message.reasoning && (
-          <div className="mb-2 ml-9">
+          <div className="mb-2 ml-7 sm:ml-9">
             <button
               type="button"
               onClick={() => setShowReasoning(!showReasoning)}
@@ -98,7 +143,7 @@ function MessageBubbleImpl({ message, isStreaming, onRetry }: MessageBubbleProps
         )}
 
         {(message.meta?.webSearch as { sources?: { url: string; title: string }[] })?.sources && (message.meta?.webSearch as { sources?: { url: string; title: string }[] }).sources!.length > 0 && (
-          <div className="mb-2 ml-9 flex flex-wrap gap-2">
+          <div className="mb-2 ml-7 flex flex-wrap gap-2 sm:ml-9">
             {((message.meta?.webSearch as { sources: { url: string; title: string }[] }).sources).slice(0, 4).map((source: { url: string; title: string }, i: number) => {
               const href = isSafeUrl(source.url) ? source.url : undefined
               return href ? (
@@ -122,8 +167,39 @@ function MessageBubbleImpl({ message, isStreaming, onRetry }: MessageBubbleProps
           </div>
         )}
 
-        <div className={`ml-9 ${isError ? 'text-destructive' : ''}`}>
-          {isUser ? (
+        <div className={`ml-7 sm:ml-9 ${isError ? 'text-destructive' : ''}`}>
+          {isUser && isEditing ? (
+            <div className="flex flex-col gap-2">
+              <textarea
+                ref={editTextareaRef}
+                value={editContent}
+                onChange={e => setEditContent(e.target.value)}
+                onKeyDown={handleEditKeyDown}
+                rows={Math.min(Math.max(editContent.split('\n').length, 2), 10)}
+                className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                aria-label="Modifier votre message"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSubmitEdit}
+                  disabled={!editContent.trim()}
+                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <Send className="h-3 w-3" aria-hidden="true" />
+                  Envoyer
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  <X className="h-3 w-3" aria-hidden="true" />
+                  Annuler
+                </button>
+              </div>
+            </div>
+          ) : isUser ? (
             <div className="whitespace-pre-wrap text-sm text-foreground">{message.content}</div>
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none text-foreground" aria-live={isStreaming ? 'polite' : undefined}>
@@ -145,8 +221,22 @@ function MessageBubbleImpl({ message, isStreaming, onRetry }: MessageBubbleProps
           )}
         </div>
 
+        {isUser && !isEditing && onEdit && (
+          <div className="ml-7 mt-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:ml-9">
+            <button
+              type="button"
+              onClick={handleStartEdit}
+              aria-label="Modifier le message"
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <Pencil className="h-3 w-3" aria-hidden="true" />
+              Modifier
+            </button>
+          </div>
+        )}
+
         {!isUser && !isStreaming && message.content && (
-          <div className="ml-9 mt-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="ml-7 mt-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 sm:ml-9">
             <button
               type="button"
               onClick={handleCopy}

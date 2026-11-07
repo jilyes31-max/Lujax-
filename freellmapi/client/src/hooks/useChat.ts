@@ -47,6 +47,7 @@ export interface UseChatReturn {
   send: (text: string, images: string[]) => Promise<void>
   stop: () => void
   retry: (index: number) => void
+  edit: (index: number, newContent: string) => void
 }
 
 export function useChat({
@@ -281,5 +282,13 @@ export function useChat({
     }
   }, [messages, send])
 
-  return { messages, setMessages, isStreaming, send, stop, retry }
+  const edit = useCallback((index: number, newContent: string) => {
+    const truncated = messages.slice(0, index)
+    setMessages(truncated)
+    const editedMsg = messages[index]
+    const images = editedMsg?.images || []
+    setTimeout(() => send(newContent, images), 50)
+  }, [messages, send])
+
+  return { messages, setMessages, isStreaming, send, stop, retry, edit }
 }

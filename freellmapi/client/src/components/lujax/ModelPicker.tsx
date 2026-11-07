@@ -33,14 +33,14 @@ export function ModelPicker({ models, selectedModel, onSelect }: ModelPickerProp
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        className="hover-glow glow-border flex items-center gap-1.5 rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-muted-foreground transition-all hover:bg-accent hover:text-foreground sm:px-3"
       >
-        <span className="max-w-[180px] truncate">{currentName}</span>
+        <span className="max-w-[100px] truncate sm:max-w-[180px]">{currentName}</span>
         <ChevronDown className={`h-3 w-3 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-80 overflow-hidden rounded-xl border border-border bg-card shadow-xl">
+        <div className="absolute bottom-full left-0 z-50 mb-2 w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-card shadow-xl sm:w-80">
           {/* Tabs */}
           <div className="flex border-b border-border">
             <button

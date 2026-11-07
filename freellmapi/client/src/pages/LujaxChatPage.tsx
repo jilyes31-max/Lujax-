@@ -12,6 +12,7 @@ import { MessageBubble } from '@/components/lujax/MessageBubble'
 import { ModelPicker } from '@/components/lujax/ModelPicker'
 import { WelcomeScreen } from '@/components/lujax/WelcomeScreen'
 import { ModeSelector, type ChatMode } from '@/components/lujax/ModeSelector'
+import { MessageSkeleton } from '@/components/lujax/MessageSkeleton'
 
 const SettingsModal = lazy(() =>
   import('@/components/lujax/SettingsModal').then((m) => ({ default: m.SettingsModal })),
@@ -49,7 +50,7 @@ export default function LujaxChatPage() {
 
   const { selectedModel, setSelectedModel, modelOptions, apiKey } = useLujaxModels()
 
-  const { messages, setMessages, isStreaming, send, stop, retry } = useChat({
+  const { messages, setMessages, isStreaming, send, stop, retry, edit } = useChat({
     activeConvoId,
     setActiveConvoId,
     selectedModel,
@@ -200,8 +201,12 @@ export default function LujaxChatPage() {
                     message={msg}
                     isStreaming={msg.streaming}
                     onRetry={msg.role === 'assistant' && !msg.streaming ? () => retry(i) : undefined}
+                    onEdit={msg.role === 'user' && !isStreaming ? (newContent: string) => edit(i, newContent) : undefined}
                   />
                 ))}
+                {isStreaming && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant' && !messages[messages.length - 1]?.content && (
+                  <MessageSkeleton />
+                )}
                 <div ref={messagesEndRef} />
               </div>
             )}

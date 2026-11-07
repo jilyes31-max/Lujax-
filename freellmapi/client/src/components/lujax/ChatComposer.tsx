@@ -117,10 +117,10 @@ function ChatComposerImpl({ onSend, onStop, isStreaming, disabled, placeholder }
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-4">
+    <div className="mx-auto w-full max-w-3xl px-3 pb-4 sm:px-4">
       <div
-        className={`relative rounded-2xl border bg-card shadow-sm transition-colors ${
-          dragOver ? 'border-primary bg-primary/5' : 'border-border'
+        className={`hover-glow relative rounded-2xl border bg-card shadow-sm transition-all ${
+          dragOver ? 'border-primary bg-primary/5' : 'border-border glow-border'
         }`}
         onDragOver={e => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}

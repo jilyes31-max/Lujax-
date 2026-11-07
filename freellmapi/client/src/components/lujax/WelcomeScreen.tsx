@@ -72,7 +72,7 @@ function WelcomeScreenImpl({ onSuggestionClick, mode = 'chat' }: WelcomeScreenPr
             ? 'bg-gradient-to-br from-emerald-400 to-green-600'
             : mode === 'auto'
               ? 'bg-gradient-to-br from-violet-400 to-purple-600'
-              : 'bg-gradient-to-br from-orange-400 to-amber-600'
+              : 'bg-gradient-to-br from-red-500 to-red-700'
         }`}>
           <ModeIcon className="h-6 w-6 text-white" aria-hidden="true" />
         </div>
@@ -96,7 +96,7 @@ function WelcomeScreenImpl({ onSuggestionClick, mode = 'chat' }: WelcomeScreenPr
             type="button"
             onClick={() => onSuggestionClick(s.text)}
             aria-label={`Suggestion : ${s.text}`}
-            className="group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-all hover:border-primary/30 hover:bg-accent hover:shadow-sm"
+            className="hover-glow glow-border group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-all hover:bg-accent hover:shadow-sm"
           >
             <s.icon className={`h-4 w-4 shrink-0 ${s.color} transition-transform group-hover:scale-110`} aria-hidden="true" />
             <span className="text-sm text-foreground">{s.text}</span>

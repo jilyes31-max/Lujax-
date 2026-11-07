@@ -88,37 +88,38 @@
 }
 
 .dark {
-    --background: oklch(0.135 0 0);
-    --foreground: oklch(0.98 0 0);
-    --card: oklch(0.175 0 0);
+    /* ── Dark luxury: deep black + metallic red ──────────────────── */
+    --background: oklch(0.07 0 0);          /* #0a0a0a deep black */
+    --foreground: oklch(0.98 0 0);          /* #fafafa off-white */
+    --card: oklch(0.115 0 0);              /* #141414 very dark gray */
     --card-foreground: oklch(0.98 0 0);
-    --popover: oklch(0.175 0 0);
+    --popover: oklch(0.115 0 0);
     --popover-foreground: oklch(0.98 0 0);
-    --primary: oklch(0.93 0 0);
-    --primary-foreground: oklch(0.18 0 0);
-    --secondary: oklch(0.24 0 0);
+    --primary: oklch(0.55 0.22 27);        /* #dc2626 Lujax red */
+    --primary-foreground: oklch(0.98 0 0);
+    --secondary: oklch(0.16 0.005 27);     /* warm dark gray with red hint */
     --secondary-foreground: oklch(0.98 0 0);
-    --muted: oklch(0.22 0 0);
-    --muted-foreground: oklch(0.68 0 0);
-    --accent: oklch(0.24 0 0);
+    --muted: oklch(0.16 0 0);
+    --muted-foreground: oklch(0.6 0 0);
+    --accent: oklch(0.18 0.01 27);         /* dark surface with red warmth */
     --accent-foreground: oklch(0.98 0 0);
     --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 14%);
-    --ring: oklch(0.6 0 0);
-    --chart-1: oklch(0.92 0 0);
-    --chart-2: oklch(0.78 0 0);
+    --border: oklch(0.2 0 0);             /* #1f1f1f subtle border */
+    --input: oklch(0.2 0 0);
+    --ring: oklch(0.55 0.22 27);           /* red ring matching primary */
+    --chart-1: oklch(0.55 0.22 27);        /* red */
+    --chart-2: oklch(0.78 0.08 27);        /* light warm */
     --chart-3: oklch(0.6 0 0);
     --chart-4: oklch(0.45 0 0);
     --chart-5: oklch(0.32 0 0);
-    --sidebar: oklch(0.175 0 0);
+    --sidebar: oklch(0.09 0 0);            /* slightly lighter than bg */
     --sidebar-foreground: oklch(0.98 0 0);
-    --sidebar-primary: oklch(0.93 0 0);
-    --sidebar-primary-foreground: oklch(0.18 0 0);
-    --sidebar-accent: oklch(0.24 0 0);
+    --sidebar-primary: oklch(0.55 0.22 27);
+    --sidebar-primary-foreground: oklch(0.98 0 0);
+    --sidebar-accent: oklch(0.18 0.01 27);
     --sidebar-accent-foreground: oklch(0.98 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.6 0 0);
+    --sidebar-border: oklch(0.2 0 0);
+    --sidebar-ring: oklch(0.55 0.22 27);
 }
 
 @layer base {
@@ -159,6 +160,97 @@
     input, textarea, select {
         font-feature-settings: 'ss01';
     }
+}
+
+/* ── Dark luxury: subtle red glow on interactive hover states ──────────── */
+.dark .hover-glow:hover {
+    box-shadow: 0 0 12px -3px oklch(0.55 0.22 27 / 25%);
+}
+.dark .glow-border:hover {
+    border-color: oklch(0.55 0.22 27 / 30%);
+}
+
+/* ── Chat animations ──────────────────────────────────────────────────────── */
+
+@keyframes msg-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes msg-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(12px) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes sidebar-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes sidebar-overlay-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-msg-slide-left {
+  animation: msg-slide-left 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-msg-slide-right {
+  animation: msg-slide-right 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.animate-sidebar-slide-in {
+  animation: sidebar-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-sidebar-overlay {
+  animation: sidebar-overlay-fade 0.2s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-msg-slide-left,
+  .animate-msg-slide-right,
+  .animate-sidebar-slide-in,
+  .animate-sidebar-overlay {
+    animation: none;
+  }
+  .animate-skeleton-pulse {
+    animation-duration: 3s;
+  }
 }
 
 /* ── Syntax highlighting (highlight.js spans, see lib/highlight.ts) ─────────
