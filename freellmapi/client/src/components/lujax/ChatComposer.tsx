@@ -1,9 +1,8 @@
-import { memo, useState, useRef, useCallback, useEffect, type KeyboardEvent, type DragEvent } from 'react'
-import { ArrowUp, Paperclip, Square, X, Mic, MicOff } from 'lucide-react'
-
-const SpeechRecognition = typeof window !== 'undefined'
-  ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-  : null
+import { memo, useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle, type KeyboardEvent, type DragEvent, type ReactNode } from 'react'
+import { ArrowUp, Paperclip, Square, X } from 'lucide-react'
+import { insertTextAtCursor } from './composer/insert'
+import { ComposerProvider } from './composer/ComposerContext'
+import type { ChatComposerHandle } from './composer/types'
 
 interface ChatComposerProps {
   onSend: (text: string, images: string[]) => void
@@ -11,57 +10,44 @@ interface ChatComposerProps {
   isStreaming?: boolean
   disabled?: boolean
   placeholder?: string
+  toolbarStart?: ReactNode
+  toolbarEnd?: ReactNode
 }
 
-function ChatComposerImpl({ onSend, onStop, isStreaming, disabled, placeholder }: ChatComposerProps) {
+function ChatComposerImpl({ onSend, onStop, isStreaming, disabled, placeholder, toolbarStart, toolbarEnd }: ChatComposerProps, ref: any) {
   const [text, setText] = useState('')
   const [images, setImages] = useState<string[]>([])
   const [dragOver, setDragOver] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const recognitionRef = useRef<any>(null)
 
-  useEffect(() => {
-    return () => { recognitionRef.current?.abort() }
-  }, [])
-
-  const toggleRecording = useCallback(() => {
-    if (!SpeechRecognition) return
-
-    if (isRecording) {
-      recognitionRef.current?.stop()
-      setIsRecording(false)
-      return
-    }
-
-    const recognition = new SpeechRecognition()
-    recognitionRef.current = recognition
-    const lang = (() => { try { return localStorage.getItem('lujax_voice_lang') || 'fr-FR' } catch { return 'fr-FR' } })()
-    recognition.lang = lang
-    recognition.continuous = true
-    recognition.interimResults = true
-
-    recognition.onresult = (event: any) => {
-      let transcript = ''
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript
+  useImperativeHandle(ref, (): ChatComposerHandle => ({
+    insertText: (t: string) => {
+      if (textareaRef.current) {
+        insertTextAtCursor(textareaRef.current, t)
+        adjustHeight()
+        setText(textareaRef.current.value)
       }
-      setText(prev => {
-        const base = prev.replace(/\s*🎤.*$/, '')
-        if (event.results[event.results.length - 1].isFinal) {
-          return (base ? base + ' ' : '') + transcript
-        }
-        return (base ? base + ' ' : '') + transcript
-      })
-    }
-
-    recognition.onerror = () => setIsRecording(false)
-    recognition.onend = () => setIsRecording(false)
-
-    recognition.start()
-    setIsRecording(true)
-  }, [isRecording])
+    },
+    getText: () => text,
+    setText: (t: string) => {
+      setText(t)
+      if (textareaRef.current) {
+        textareaRef.current.value = t
+        adjustHeight()
+      }
+    },
+    addImage: (dataUrl: string) => setImages(prev => [...prev, dataUrl]),
+    clear: () => {
+      setText('')
+      setImages([])
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+        textareaRef.current.value = ''
+      }
+    },
+    focus: () => textareaRef.current?.focus(),
+  }), [text, adjustHeight])
 
   const adjustHeight = useCallback(() => {
     const el = textareaRef.current
@@ -116,9 +102,38 @@ function ChatComposerImpl({ onSend, onStop, isStreaming, disabled, placeholder }
     }
   }
 
+  const composerHandle: ChatComposerHandle = {
+    insertText: (t: string) => {
+      if (textareaRef.current) {
+        insertTextAtCursor(textareaRef.current, t)
+        adjustHeight()
+        setText(textareaRef.current.value)
+      }
+    },
+    getText: () => text,
+    setText: (t: string) => {
+      setText(t)
+      if (textareaRef.current) {
+        textareaRef.current.value = t
+        adjustHeight()
+      }
+    },
+    addImage: (dataUrl: string) => setImages(prev => [...prev, dataUrl]),
+    clear: () => {
+      setText('')
+      setImages([])
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto'
+        textareaRef.current.value = ''
+      }
+    },
+    focus: () => textareaRef.current?.focus(),
+  }
+
   return (
-    <div className="mx-auto w-full max-w-3xl px-3 pb-4 sm:px-4">
-      <div
+    <ComposerProvider value={composerHandle}>
+      <div className="mx-auto w-full max-w-3xl px-3 pb-4 sm:px-4">
+        <div
         className={`hover-glow relative rounded-2xl border bg-card shadow-sm transition-all ${
           dragOver ? 'border-primary bg-primary/5' : 'border-border glow-border'
         }`}
@@ -168,24 +183,7 @@ function ChatComposerImpl({ onSend, onStop, isStreaming, disabled, placeholder }
             >
               <Paperclip className="h-4 w-4" aria-hidden="true" />
             </button>
-            {SpeechRecognition && (
-              <button
-                type="button"
-                onClick={toggleRecording}
-                aria-label={isRecording ? 'Arrêter l\'enregistrement' : 'Saisie vocale'}
-                aria-pressed={isRecording}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                  isRecording
-                    ? 'bg-red-500/10 text-red-500 animate-pulse'
-                    : 'text-muted-foreground hover:bg-accent hover:text-foreground'
-                }`}
-              >
-                {isRecording ? <MicOff className="h-4 w-4" aria-hidden="true" /> : <Mic className="h-4 w-4" aria-hidden="true" />}
-              </button>
-            )}
-            <span role="status" aria-live="polite" className="sr-only">
-              {isRecording ? 'Enregistrement en cours' : ''}
-            </span>
+            {toolbarStart}
             <input
               ref={fileRef}
               type="file"
@@ -199,34 +197,38 @@ function ChatComposerImpl({ onSend, onStop, isStreaming, disabled, placeholder }
             />
           </div>
 
-          {isStreaming ? (
-            <button
-              type="button"
-              onClick={onStop}
-              aria-label="Arrêter la génération"
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-opacity hover:opacity-80"
-            >
-              <Square className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={disabled || (!text.trim() && !images.length)}
-              aria-label="Envoyer le message"
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-opacity hover:opacity-80 disabled:opacity-30"
-            >
-              <ArrowUp className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {toolbarEnd}
+            {isStreaming ? (
+              <button
+                type="button"
+                onClick={onStop}
+                aria-label="Arrêter la génération"
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-opacity hover:opacity-80"
+              >
+                <Square className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={disabled || (!text.trim() && !images.length)}
+                aria-label="Envoyer le message"
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-opacity hover:opacity-80 disabled:opacity-30"
+              >
+                <ArrowUp className="h-4 w-4" strokeWidth={2.5} aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      <p className="mt-2 text-center text-xs text-muted-foreground">
-        Lujax — Ta propre IA, 100% gratuite et open-source.
-      </p>
-    </div>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          Lujax — Ta propre IA, 100% gratuite et open-source.
+        </p>
+      </div>
+    </ComposerProvider>
   )
 }
 
-export const ChatComposer = memo(ChatComposerImpl)
+export const ChatComposer = memo(forwardRef(ChatComposerImpl))
