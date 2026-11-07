@@ -8,14 +8,16 @@ services:
     envVars:
       - key: LUJAX_MODE
         value: "true"
+      - key: TRUST_PROXY
+        value: "1"
       - key: SUPABASE_URL
         value: "https://bpazcpjuwpajefkjgfab.supabase.co"
       - key: SUPABASE_ANON_KEY
         value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwYXpjcGp1d3BhamVma2pnZmFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5MDk3ODIsImV4cCI6MjEwOTQ4NTc4Mn0.DvfGVNXgvmYCG5IiQJmZwcSjpXyLYCD5wlflqGSzCl8"
       - key: ENCRYPTION_KEY
-        generateValue: true
+        sync: false
       - key: FREEAPI_CONFIG_JSON
-        value: '{"keys":[{"platform":"kilo"},{"platform":"ovh"},{"platform":"aihorde"}]}'
+        sync: false
       - key: FREEAPI_BLOCK_PRIVATE_PROVIDER_URLS
         value: "true"
       - key: VITE_SUPABASE_URL
