@@ -18,6 +18,7 @@ import {
 import { setupCodeMatches, clearSetupCode } from '../lib/setup-code.js';
 import { generateResetCode, resetCodeMatches, clearResetCode } from '../lib/reset-code.js';
 import { getUnifiedApiKey } from '../db/index.js';
+import { requireSupabaseAuth } from '../middleware/requireSupabaseAuth.js';
 
 export const authRouter = Router();
 
@@ -423,42 +424,18 @@ authRouter.post('/reset-password', (req: Request, res: Response) => {
 // /auth/v1/user endpoint, which returns 401 for expired or forged tokens.
 // This is strictly MORE restrictive than loopback alone: it proves the
 // caller holds a live Supabase session.
-authRouter.get('/lujax-config', async (req: Request, res: Response) => {
-  if (process.env.LUJAX_MODE !== 'true' && isLoopbackRemote(req)) {
-    res.json({ apiKey: getUnifiedApiKey() });
-    return;
-  }
-
+function lujaxLocalGate(req: Request, res: Response, next: Function) {
   if (process.env.LUJAX_MODE !== 'true') {
+    if (isLoopbackRemote(req)) {
+      res.json({ apiKey: getUnifiedApiKey() });
+      return;
+    }
     res.status(403).json({ error: { message: 'Only available from the local host', type: 'forbidden' } });
     return;
   }
+  next();
+}
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseAnonKey) {
-    res.status(500).json({ error: { message: 'Supabase not configured', type: 'server_error' } });
-    return;
-  }
-
-  const jwt = req.headers.authorization?.replace(/^Bearer\s+/i, '');
-  if (!jwt) {
-    res.status(401).json({ error: { message: 'Supabase authentication required', type: 'unauthorized' } });
-    return;
-  }
-
-  try {
-    const verify = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${jwt}`, apikey: supabaseAnonKey },
-    });
-    if (!verify.ok) {
-      res.status(401).json({ error: { message: 'Invalid or expired token', type: 'unauthorized' } });
-      return;
-    }
-  } catch {
-    res.status(502).json({ error: { message: 'Could not verify token', type: 'gateway_error' } });
-    return;
-  }
-
+authRouter.get('/lujax-config', lujaxLocalGate, requireSupabaseAuth, (_req: Request, res: Response) => {
   res.json({ apiKey: getUnifiedApiKey() });
 });
