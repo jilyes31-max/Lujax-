@@ -1,4 +1,4 @@
-import { memo, useState, useRef, useCallback, useEffect, forwardRef, useImperativeHandle, type KeyboardEvent, type DragEvent, type ReactNode } from 'react'
+import { memo, useState, useRef, useCallback, forwardRef, useImperativeHandle, type KeyboardEvent, type DragEvent, type ReactNode } from 'react'
 import { ArrowUp, Paperclip, Square, X } from 'lucide-react'
 import { insertTextAtCursor } from './composer/insert'
 import { ComposerProvider } from './composer/ComposerContext'
@@ -20,6 +20,13 @@ function ChatComposerImpl({ onSend, onStop, isStreaming, disabled, placeholder, 
   const [dragOver, setDragOver] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    el.style.height = Math.min(el.scrollHeight, 200) + 'px'
+  }, [])
 
   useImperativeHandle(ref, (): ChatComposerHandle => ({
     insertText: (t: string) => {
@@ -48,13 +55,6 @@ function ChatComposerImpl({ onSend, onStop, isStreaming, disabled, placeholder, 
     },
     focus: () => textareaRef.current?.focus(),
   }), [text, adjustHeight])
-
-  const adjustHeight = useCallback(() => {
-    const el = textareaRef.current
-    if (!el) return
-    el.style.height = 'auto'
-    el.style.height = Math.min(el.scrollHeight, 200) + 'px'
-  }, [])
 
   const handleSend = () => {
     const trimmed = text.trim()
