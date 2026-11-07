@@ -14,3 +14,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Agent git worktrees
+.claude/worktrees/
