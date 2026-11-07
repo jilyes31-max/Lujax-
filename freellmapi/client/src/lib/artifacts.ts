@@ -80,7 +80,7 @@ export function artifactMimeType(kind: ArtifactKind): string {
 }
 
 /** URL of the artifact preview frame (with strict CSP sandbox). */
-export const ARTIFACT_FRAME_URL = new URL('/artifact-frame', window.location.origin).toString()
+export const ARTIFACT_FRAME_URL = '/artifact-frame'
 
 /** Post artifact content to the frame iframe for rendering. */
 export function postArtifact(frameElement: HTMLIFrameElement, artifact: Artifact): void {
